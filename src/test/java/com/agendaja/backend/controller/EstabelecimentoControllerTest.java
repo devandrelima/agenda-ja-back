@@ -23,6 +23,7 @@ import static org.mockito.Mockito.*;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 @WebMvcTest(EstabelecimentoController.class)
 @Import(SecurityConfig.class)
@@ -35,6 +36,18 @@ class EstabelecimentoControllerTest {
 	private EstabelecimentoService estabelecimentoService;
 
 	private static final String URL = "/api/estabelecimentos";
+
+
+	@Test
+	void deveRejeitarCadastroSemCsrf() throws Exception {
+
+		mockMvc.perform(post(URL)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{}"))
+				.andExpect(status().isForbidden());
+
+		verifyNoInteractions(estabelecimentoService);
+	}
 
 	@Test
 	void deveRetornar201QuandoCadastroForValido() throws Exception {
@@ -52,6 +65,7 @@ class EstabelecimentoControllerTest {
             """;
 
 		mockMvc.perform(post(URL)
+						.with(csrf())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(json))
 				.andExpect(status().isCreated())
@@ -81,6 +95,7 @@ class EstabelecimentoControllerTest {
 				.cadastrarEstabelecimentoEGestor(any());
 
 		mockMvc.perform(post(URL)
+						.with(csrf())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(json))
 				.andExpect(status().isConflict())
@@ -104,6 +119,7 @@ class EstabelecimentoControllerTest {
             """;
 
 		mockMvc.perform(post(URL)
+						.with(csrf())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(json))
 				.andExpect(status().isBadRequest())
@@ -133,6 +149,7 @@ class EstabelecimentoControllerTest {
             """;
 
 		mockMvc.perform(post(URL)
+						.with(csrf())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(json))
 				.andExpect(status().isBadRequest())
@@ -157,6 +174,7 @@ class EstabelecimentoControllerTest {
             """;
 
 		mockMvc.perform(post(URL)
+						.with(csrf())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(json))
 				.andExpect(status().isCreated());
