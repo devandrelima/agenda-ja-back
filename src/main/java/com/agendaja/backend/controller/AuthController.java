@@ -24,6 +24,10 @@ import org.springframework.security.web.csrf.CsrfToken;
 
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -33,11 +37,52 @@ public class AuthController {
 	private final SecurityContextRepository securityContextRepository;
 	private final UsuarioRepository usuarioRepository;
 
+
+	@Operation(
+			summary = "Obter token CSRF",
+			description = """
+				Retorna o token CSRF para operações de escrita.
+				O frontend deve preservar o cookie da sessão
+				e enviar o token no header indicado pela resposta.
+				"""
+	)
+	@ApiResponse(
+			responseCode = "200",
+			description = "Token CSRF retornado"
+	)
 	@GetMapping("/csrf")
 	public CsrfToken csrf(CsrfToken token) {
 		return token;
 	}
 
+
+	@Operation(
+			summary = "Autenticar usuário",
+			description = """
+				Autentica utilizando e-mail e senha.
+				Exige token CSRF no header X-CSRF-TOKEN
+				e o cookie de sessão correspondente.
+				Retorna os dados do usuário autenticado.
+				"""
+	)
+	@ApiResponses({
+			@ApiResponse(
+					responseCode = "200",
+					description = "Login realizado com sucesso"
+			),
+			@ApiResponse(
+					responseCode = "400",
+					description = "Dados inválidos"
+			),
+			@ApiResponse(
+					responseCode = "401",
+					description = "Credenciais inválidas"
+			),
+			@ApiResponse(
+					responseCode = "403",
+					description = "Token CSRF ausente ou inválido"
+			)
+	})
 	@PostMapping("/login")
 	public ResponseEntity<?> login(
 			@RequestBody @Valid LoginDTO dto,
@@ -79,6 +124,24 @@ public class AuthController {
 		}
 	}
 
+
+	@Operation(
+			summary = "Consultar sessão atual",
+			description = """
+				Retorna os dados do usuário autenticado.
+				Requer cookie de sessão válido.
+				"""
+	)
+	@ApiResponses({
+			@ApiResponse(
+					responseCode = "200",
+					description = "Sessão válida"
+			),
+			@ApiResponse(
+					responseCode = "401",
+					description = "Usuário não autenticado"
+			)
+	})
 	@GetMapping("/me")
 	public SessaoDTO consultarSessao(Authentication authentication) {
 		return buscarSessao(authentication.getName());
