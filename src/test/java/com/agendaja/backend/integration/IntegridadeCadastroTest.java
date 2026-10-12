@@ -1,4 +1,3 @@
-
 package com.agendaja.backend.integration;
 
 import com.agendaja.backend.dto.EstabelecimentoCadastroDTO;
@@ -15,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import org.testcontainers.junit.jupiter.Container;
@@ -26,12 +26,11 @@ import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @Testcontainers
+@ActiveProfiles("test")
 class IntegridadeCadastroTest {
-
 	@Container
 	@ServiceConnection
-	static PostgreSQLContainer postgres =
-			new PostgreSQLContainer("postgres:17-alpine");
+	static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17-alpine");
 
 	@Autowired
 	private EstabelecimentoService estabelecimentoService;
@@ -46,14 +45,15 @@ class IntegridadeCadastroTest {
 	private PasswordEncoder passwordEncoder;
 
 	@AfterEach
-	void limparDados() {
+	void limparDados()
+	{
 		usuarioRepository.deleteAll();
 		estabelecimentoRepository.deleteAll();
 	}
 
 	@Test
-	void bancoDeveImpedirEmailDuplicado() {
-
+	void bancoDeveImpedirEmailDuplicado()
+	{
 		var primeiroUsuario = new Usuario(
 				null,
 				null,
@@ -83,8 +83,8 @@ class IntegridadeCadastroTest {
 	}
 
 	@Test
-	void deveDesfazerCadastroQuandoOcorreFalha() {
-
+	void deveDesfazerCadastroQuandoOcorreFalha()
+	{
 		var dto = new EstabelecimentoCadastroDTO(
 				"Barbearia Teste",
 				"BARBEARIA",
