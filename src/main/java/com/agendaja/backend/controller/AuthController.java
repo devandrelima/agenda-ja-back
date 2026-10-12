@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.Parameter;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -83,6 +84,12 @@ public class AuthController {
 					description = "Token CSRF ausente ou inválido"
 			)
 	})
+	@Parameter(
+			name = "X-CSRF-TOKEN",
+			description = "Token obtido em GET /api/auth/csrf",
+			required = true,
+			in = io.swagger.v3.oas.annotations.enums.ParameterIn.HEADER
+	)
 	@PostMapping("/login")
 	public ResponseEntity<?> login(
 			@RequestBody @Valid LoginDTO dto,
