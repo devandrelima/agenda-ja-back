@@ -1,4 +1,3 @@
-
 package com.agendaja.backend.integration;
 
 import com.agendaja.backend.dto.EstabelecimentoCadastroDTO;
@@ -14,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.testcontainers.junit.jupiter.Container;
@@ -25,12 +25,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @Testcontainers
 @Transactional
+@ActiveProfiles("test")
 class EstabelecimentoIntegracaoTest {
-
 	@Container
 	@ServiceConnection
-	static PostgreSQLContainer postgres =
-			new PostgreSQLContainer("postgres:17-alpine");
+	static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17-alpine");
 
 	@Autowired
 	private EstabelecimentoService estabelecimentoService;
@@ -44,7 +43,8 @@ class EstabelecimentoIntegracaoTest {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-	private EstabelecimentoCadastroDTO criarDto(String email) {
+	private EstabelecimentoCadastroDTO criarDto(String email)
+	{
 		return new EstabelecimentoCadastroDTO(
 				"Barbearia Teste",
 				"BARBEARIA",
@@ -57,8 +57,8 @@ class EstabelecimentoIntegracaoTest {
 	}
 
 	@Test
-	void devePersistirEstabelecimentoEGestor() {
-
+	void devePersistirEstabelecimentoEGestor()
+	{
 		var dto = criarDto("gestor1@email.com");
 
 		estabelecimentoService.cadastrarEstabelecimentoEGestor(dto);
@@ -79,15 +79,12 @@ class EstabelecimentoIntegracaoTest {
 		assertEquals("GESTOR", gestor.getRole());
 		assertEquals("gestor1@email.com", gestor.getEmail());
 
-		assertEquals(
-				estabelecimento.getId(),
-				gestor.getEstabelecimento().getId()
-		);
+		assertEquals(estabelecimento.getId(), gestor.getEstabelecimento().getId());
 	}
 
 	@Test
-	void deveArmazenarSenhaComBCrypt() {
-
+	void deveArmazenarSenhaComBCrypt()
+	{
 		var dto = criarDto("gestor2@email.com");
 
 		estabelecimentoService.cadastrarEstabelecimentoEGestor(dto);
@@ -96,17 +93,12 @@ class EstabelecimentoIntegracaoTest {
 
 		assertNotEquals("SenhaSegura123", gestor.getSenha());
 
-		assertTrue(
-				passwordEncoder.matches(
-						"SenhaSegura123",
-						gestor.getSenha()
-				)
-		);
+		assertTrue(passwordEncoder.matches("SenhaSegura123", gestor.getSenha()));
 	}
 
 	@Test
-	void deveImpedirEmailDuplicado() {
-
+	void deveImpedirEmailDuplicado()
+	{
 		estabelecimentoService.cadastrarEstabelecimentoEGestor(
 				criarDto("duplicado@email.com")
 		);
@@ -124,8 +116,8 @@ class EstabelecimentoIntegracaoTest {
 	}
 
 	@Test
-	void devePermitirClienteSemEstabelecimento() {
-
+	void devePermitirClienteSemEstabelecimento()
+	{
 		var cliente = new Usuario(
 				null,
 				null,
