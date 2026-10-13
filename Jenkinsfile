@@ -9,7 +9,7 @@ pipeline {
   environment {
     IMAGE_NAME = 'agenda-ja-back'
     CONTAINER_NAME = 'agenda-ja-back'
-    HOST_PORT = '8080'
+    HOST_PORT = '8091'
   }
 
   stages {
@@ -22,31 +22,18 @@ pipeline {
     stage('Build e testes') {
       steps {
         sh '''
-          mkdir -p "build-artifacts/${BUILD_NUMBER}/surefire-reports"
-          mkdir -p "build-artifacts/${BUILD_NUMBER}/jacoco"
-
-          JDK21_DIR="${HOME}/.jdk21"
-          if [ ! -x "${JDK21_DIR}/bin/javac" ]; then
-            mkdir -p "${JDK21_DIR}"
-            if ldd --version 2>&1 | grep -qi musl; then
-              OS_TYPE="alpine-linux"
-            else
-              OS_TYPE="linux"
-            fi
-            curl -fsSL "https://api.adoptium.net/v3/binary/latest/21/ga/${OS_TYPE}/x64/jdk/hotspot/normal/eclipse" \
-              | tar -xz -C "${JDK21_DIR}" --strip-components=1
-          fi
-
-          export JAVA_HOME="${JDK21_DIR}"
-          export PATH="${JAVA_HOME}/bin:${PATH}"
-          java -version
-
           chmod +x mvnw
-          ./mvnw clean package -B
+          JENKINS_CONTAINER="$(docker inspect --format '{{.Id}}' "$(hostname)" 2>/dev/null || docker ps -q --filter "volume=/var/jenkins_home" | head -n 1)"
 
-          cp -r target/surefire-reports/. "build-artifacts/${BUILD_NUMBER}/surefire-reports/"
-          cp -r target/site/jacoco/. "build-artifacts/${BUILD_NUMBER}/jacoco/"
-          cp target/*.jar "build-artifacts/${BUILD_NUMBER}/"
+          docker run --rm \
+            --network host \
+            --volumes-from "${JENKINS_CONTAINER}" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -w "${WORKSPACE}" \
+            -e TESTCONTAINERS_HOST_OVERRIDE=127.0.0.1 \
+            -e TESTCONTAINERS_RYUK_DISABLED=true \
+            eclipse-temurin:21-jdk \
+            sh -c "./mvnw clean package -B -Dmaven.repo.local=/var/jenkins_home/.m2/repository && chown -R $(id -u):$(id -g) target"
         '''
       }
     }
@@ -94,14 +81,21 @@ pipeline {
 
   post {
     always {
-      junit testResults: "build-artifacts/${env.BUILD_NUMBER}/surefire-reports/*.xml", allowEmptyResults: true
+      sh '''
+        mkdir -p "build-artifacts/${BUILD_NUMBER}/surefire-reports"
+        mkdir -p "build-artifacts/${BUILD_NUMBER}/jacoco"
+        cp -r target/surefire-reports/. "build-artifacts/${BUILD_NUMBER}/surefire-reports/" 2>/dev/null || true
+        cp -r target/site/jacoco/. "build-artifacts/${BUILD_NUMBER}/jacoco/" 2>/dev/null || true
+        cp target/*.jar "build-artifacts/${BUILD_NUMBER}/" 2>/dev/null || true
+      '''
+      junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
       archiveArtifacts artifacts: "build-artifacts/${env.BUILD_NUMBER}/**", allowEmptyArchive: true
-      recordCoverage tools: [[parser: 'JACOCO', pattern: "build-artifacts/${env.BUILD_NUMBER}/jacoco/jacoco.xml"]]
+      recordCoverage tools: [[parser: 'JACOCO', pattern: 'target/site/jacoco/jacoco.xml']]
       publishHTML(target: [
         allowMissing: true,
         alwaysLinkToLastBuild: true,
         keepAll: true,
-        reportDir: "build-artifacts/${env.BUILD_NUMBER}/jacoco",
+        reportDir: 'target/site/jacoco',
         reportFiles: 'index.html',
         reportName: 'Cobertura backend'
       ])
