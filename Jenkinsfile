@@ -9,7 +9,7 @@ pipeline {
   environment {
     IMAGE_NAME = 'agenda-ja-back'
     CONTAINER_NAME = 'agenda-ja-back'
-    HOST_PORT = '8091'
+    HOST_PORT = '8093'
   }
 
   stages {
@@ -65,11 +65,18 @@ pipeline {
           fi
 
           docker rm --force "${CONTAINER_NAME}" 2>/dev/null || true
+
+          DEPLOY_PORT="${HOST_PORT}"
+          while docker ps --format '{{.Ports}}' | grep -q ":${DEPLOY_PORT}->"; do
+            DEPLOY_PORT=$((DEPLOY_PORT + 1))
+          done
+          echo "Subindo ${CONTAINER_NAME} na porta ${DEPLOY_PORT}..."
+
           docker run --detach \
             --name "${CONTAINER_NAME}" \
             --restart unless-stopped \
             --network agendaja-net \
-            --publish "${HOST_PORT}:8080" \
+            --publish "${DEPLOY_PORT}:8080" \
             -e DB_URL=jdbc:postgresql://agendaja-postgres:5432/agendaja \
             --label "com.agenda-ja.managed-by=jenkins" \
             "${IMAGE_NAME}:${BUILD_NUMBER}"
@@ -82,6 +89,7 @@ pipeline {
   post {
     always {
       sh '''
+        docker rm --force $(docker ps -aq --filter "label=org.testcontainers=true") 2>/dev/null || true
         mkdir -p "build-artifacts/${BUILD_NUMBER}/surefire-reports"
         mkdir -p "build-artifacts/${BUILD_NUMBER}/jacoco"
         cp -r target/surefire-reports/. "build-artifacts/${BUILD_NUMBER}/surefire-reports/" 2>/dev/null || true
