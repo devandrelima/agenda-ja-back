@@ -65,4 +65,18 @@ pipeline {
       }
     }
   }
+
+  post {
+    always {
+      junit testResults: "build-artifacts/${env.BUILD_NUMBER}/surefire-reports/*.xml", allowEmptyResults: true
+      archiveArtifacts artifacts: "build-artifacts/${env.BUILD_NUMBER}/**", allowEmptyArchive: true
+      recordCoverage tools: [[parser: 'JACOCO', pattern: "build-artifacts/${env.BUILD_NUMBER}/jacoco/jacoco.xml"]]
+      publishHTML(target: [
+        reportDir: "build-artifacts/${env.BUILD_NUMBER}/jacoco",
+        reportFiles: 'index.html',
+        reportName: 'Cobertura backend'
+      ])
+      sh 'docker image prune --force --filter "label=com.agenda-ja.managed-by=jenkins" || true'
+    }
+  }
 }
