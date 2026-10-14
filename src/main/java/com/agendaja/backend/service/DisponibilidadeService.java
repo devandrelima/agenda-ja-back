@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,8 @@ public class DisponibilidadeService {
         
         var profissional = buscarProfissional(estabelecimentoId, profissionalId);
 
+        validarJornadas(dto.jornadas());
+
         profissional.getJornadasTrabalho().clear();
         for (JornadaTrabalhoDTO j : dto.jornadas()) {
             var jornada = new JornadaTrabalho();
@@ -55,6 +58,26 @@ public class DisponibilidadeService {
         }
 
         return DisponibilidadeResponseDTO.from(profissional);
+    }
+
+    private void validarJornadas(List<JornadaTrabalhoDTO> jornadas)
+    {
+        for (var jornada : jornadas)
+            if (!jornada.horaInicio().isBefore(jornada.horaFim()))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A hora de início deve ser anterior à hora de fim.");
+
+        for (int i = 0; i < jornadas.size(); i++) {
+            for (int j = i + 1; j < jornadas.size(); j++) {
+                var j1 = jornadas.get(i);
+                var j2 = jornadas.get(j);
+
+                if (j1.diaSemana().equals(j2.diaSemana())) {
+                    boolean sobrepoe = j1.horaInicio().isBefore(j2.horaFim()) && j2.horaInicio().isBefore(j1.horaFim());
+                    if (sobrepoe)
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Existem jornadas sobrepostas para o mesmo dia.");
+                }
+            }
+        }
     }
 
     private Profissional buscarProfissional(Long estabelecimentoId, Long profissionalId)
