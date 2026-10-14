@@ -63,7 +63,7 @@ public class ServicoService {
 		);
 
 		return servicoRepository
-				.findByEstabelecimentoId(estabelecimentoId)
+				.findByEstabelecimentoIdAndAtivoTrue(estabelecimentoId)
 				.stream()
 				.map(ServicoResponseDTO::from)
 				.toList();
@@ -109,7 +109,7 @@ public class ServicoService {
 			Long servicoId
 	) {
 		return servicoRepository
-				.findByIdAndEstabelecimentoId(
+				.findByIdAndEstabelecimentoIdAndAtivoTrue(
 						servicoId, estabelecimentoId
 				)
 				.orElseThrow(() -> new ResponseStatusException(
@@ -117,4 +117,22 @@ public class ServicoService {
 						"Serviço não encontrado"
 				));
 	}
+
+	@Transactional
+	public void desativar(
+			Long estabelecimentoId,
+			Long servicoId,
+			String emailGestor
+	) {
+		authorizationService.validarAcesso(
+				emailGestor, estabelecimentoId
+		);
+
+		var servico = buscarServico(
+				estabelecimentoId, servicoId
+		);
+
+		servico.setAtivo(false);
+	}
+
 }

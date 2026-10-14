@@ -10,10 +10,22 @@ import java.util.Optional;
 public interface ServicoRepository
 		extends JpaRepository<Servico, Long> {
 
-	List<Servico> findByEstabelecimentoId(Long estabelecimentoId);
+	List<Servico> findByEstabelecimentoId(
+			Long estabelecimentoId
+	);
 
 	Optional<Servico> findByIdAndEstabelecimentoId(
 			Long id,
 			Long estabelecimentoId
 	);
+
+	List<Servico> findByEstabelecimentoIdAndAtivoTrue(
+			Long estabelecimentoId
+	);
+
+	Optional<Servico> findByIdAndEstabelecimentoIdAndAtivoTrue(
+			Long id,
+			Long estabelecimentoId
+	);
+
 }

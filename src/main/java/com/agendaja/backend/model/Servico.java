@@ -33,6 +33,9 @@ public class Servico {
 	)
 	private BigDecimal valor;
 
+	@Column(nullable = false)
+	private boolean ativo = true;
+
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(
 			name = "estabelecimento_id",
