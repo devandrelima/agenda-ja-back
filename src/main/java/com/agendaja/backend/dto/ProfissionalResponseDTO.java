@@ -17,7 +17,7 @@ public record ProfissionalResponseDTO(
         return new ProfissionalResponseDTO(
                 profissional.getId(),
                 profissional.getNome(),
-                profissional.getEspecialidades(),
+                profissional.getEspecialidades().stream().toList(),
                 profissional.getServicos().stream().map(servico -> servico.getId()).toList(),
                 profissional.getJornadasTrabalho().stream().map(j -> j.getDiaSemana()).distinct().toList(),
                 profissional.getFolgas().stream().map(f -> f.getData().toString()).toList(),
