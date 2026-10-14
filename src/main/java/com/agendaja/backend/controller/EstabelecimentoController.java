@@ -2,6 +2,7 @@ package com.agendaja.backend.controller;
 
 import com.agendaja.backend.dto.EstabelecimentoCadastroDTO;
 import com.agendaja.backend.service.EstabelecimentoService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.Parameter;
 
+@Tag(
+        name = "Estabelecimentos",
+        description = "Cadastro de estabelecimento com seu respectivo gestor"
+)
 @RestController
 @RequestMapping("/api/estabelecimentos")
 @RequiredArgsConstructor

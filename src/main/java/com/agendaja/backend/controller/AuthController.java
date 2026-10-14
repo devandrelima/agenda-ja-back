@@ -5,6 +5,7 @@ import com.agendaja.backend.dto.LoginDTO;
 import com.agendaja.backend.dto.SessaoDTO;
 import com.agendaja.backend.repository.UsuarioRepository;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -29,6 +30,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.Parameter;
 
+@Tag(
+		name = "Auth",
+		description = "Autenticação"
+)
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
