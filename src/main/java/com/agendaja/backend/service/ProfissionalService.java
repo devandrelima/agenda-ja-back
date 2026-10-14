@@ -24,7 +24,7 @@ public class ProfissionalService {
     private final EstabelecimentoAuthorizationService authorizationService;
 
     @Transactional
-    public ProfissionalResponseDTO criar (Long estabelecimentoId, ProfissionalRequestDTO dto, String emailGestor)
+    public ProfissionalResponseDTO criar(Long estabelecimentoId, ProfissionalRequestDTO dto, String emailGestor)
     {
         authorizationService.validarAcesso(emailGestor, estabelecimentoId);
 
@@ -61,7 +61,7 @@ public class ProfissionalService {
     }
 
     @Transactional
-    public ProfissionalResponseDTO editar(Long profissionalId, ProfissionalRequestDTO dto, String emailGestor, Long estabelecimentoId)
+    public ProfissionalResponseDTO editar(Long estabelecimentoId, Long profissionalId, ProfissionalRequestDTO dto, String emailGestor)
     {
         authorizationService.validarAcesso(emailGestor, estabelecimentoId);
 
@@ -91,7 +91,7 @@ public class ProfissionalService {
                 
         if (servicos.size() != idsServicos.size() || !todosServicosDoEstabelecimento)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Um ou mais serviços são inválidos ou não pertencem ao estabelecimento.");
-        
+    
         profissional.setServicos(servicos);
     }
 }

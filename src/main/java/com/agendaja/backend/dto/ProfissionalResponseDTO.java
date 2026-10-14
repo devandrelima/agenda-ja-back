@@ -1,7 +1,6 @@
 package com.agendaja.backend.dto;
 
 import com.agendaja.backend.model.Profissional;
-import com.agendaja.backend.model.Servico;
 import java.util.List;
 
 public record ProfissionalResponseDTO(
@@ -19,7 +18,7 @@ public record ProfissionalResponseDTO(
                 profissional.getId(),
                 profissional.getNome(),
                 profissional.getEspecialidades(),
-                profissional.getServicos().stream().map(Servico::getId).toList(),
+                profissional.getServicos().stream().map(servico -> servico.getId()).toList(),
                 profissional.getDiasDeAtendimento(),
                 profissional.getDiasDeFolga(),
                 profissional.getEstabelecimento().getId()
