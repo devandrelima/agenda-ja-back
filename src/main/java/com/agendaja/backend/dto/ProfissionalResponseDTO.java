@@ -19,8 +19,8 @@ public record ProfissionalResponseDTO(
                 profissional.getNome(),
                 profissional.getEspecialidades(),
                 profissional.getServicos().stream().map(servico -> servico.getId()).toList(),
-                profissional.getDiasDeAtendimento(),
-                profissional.getDiasDeFolga(),
+                profissional.getJornadasTrabalho().stream().map(j -> j.getDiaSemana()).distinct().toList(),
+                profissional.getFolgas().stream().map(f -> f.getData().toString()).toList(),
                 profissional.getEstabelecimento().getId()
         );
     }

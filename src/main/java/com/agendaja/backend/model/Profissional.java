@@ -37,13 +37,9 @@ public class Profissional {
     @Column(name = "especialidade")
     private List<String> especialidades = new ArrayList<>();
 
-    @ElementCollection
-    @CollectionTable(name = "profissional_dias_atendimento", joinColumns = @JoinColumn(name = "profissional_id"))
-    @Column(name = "dia_semana")
-    private List<Integer> diasDeAtendimento = new ArrayList<>();
+    @OneToMany(mappedBy = "profissional", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<JornadaTrabalho> jornadasTrabalho = new ArrayList<>();
 
-    @ElementCollection
-    @CollectionTable(name = "profissional_dias_folga", joinColumns = @JoinColumn(name = "profissional_id"))
-    @Column(name = "dia_folga")
-    private List<String> diasDeFolga = new ArrayList<>();
+    @OneToMany(mappedBy = "profissional", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Folga> folgas = new ArrayList<>();
 }
