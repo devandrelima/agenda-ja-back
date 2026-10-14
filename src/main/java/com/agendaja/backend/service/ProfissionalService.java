@@ -2,6 +2,8 @@ package com.agendaja.backend.service;
 
 import com.agendaja.backend.dto.ProfissionalRequestDTO;
 import com.agendaja.backend.dto.ProfissionalResponseDTO;
+import com.agendaja.backend.model.Folga;
+import com.agendaja.backend.model.JornadaTrabalho;
 import com.agendaja.backend.model.Profissional;
 import com.agendaja.backend.model.Servico;
 import com.agendaja.backend.repository.EstabelecimentoRepository;
@@ -13,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -35,8 +39,27 @@ public class ProfissionalService {
         profissional.setNome(dto.nome());
         profissional.setEstabelecimento(estabelecimento);
         profissional.setEspecialidades(dto.especialidades());
-        profissional.setDiasDeAtendimento(dto.diasDeAtendimento());
-        profissional.setDiasDeFolga(dto.diasDeFolga());
+        
+        if (dto.diasDeAtendimento() != null) {
+            for (Integer dia : dto.diasDeAtendimento()) {
+                var jornada = new JornadaTrabalho();
+                jornada.setDiaSemana(dia);
+                jornada.setHoraInicio(LocalTime.of(8, 0));
+                jornada.setHoraFim(LocalTime.of(18, 0));
+                jornada.setProfissional(profissional);
+                profissional.getJornadasTrabalho().add(jornada);
+            }
+        }
+        
+        if (dto.diasDeFolga() != null) {
+            for (String dataStr : dto.diasDeFolga()) {
+                var folga = new Folga();
+                folga.setData(LocalDate.parse(dataStr));
+                folga.setMotivo("Folga");
+                folga.setProfissional(profissional);
+                profissional.getFolgas().add(folga);
+            }
+        }
         
         validarEAssociarServicos(profissional, dto.idsServicos(), estabelecimentoId);
 
@@ -68,8 +91,38 @@ public class ProfissionalService {
         var profissional = buscarProfissional(estabelecimentoId, profissionalId);
         profissional.setNome(dto.nome());
         profissional.setEspecialidades(dto.especialidades());
-        profissional.setDiasDeAtendimento(dto.diasDeAtendimento());
-        profissional.setDiasDeFolga(dto.diasDeFolga());
+        
+        if (dto.diasDeAtendimento() != null) {
+            profissional.getJornadasTrabalho().removeIf(j -> !dto.diasDeAtendimento().contains(j.getDiaSemana()));
+            
+            List<Integer> diasExistentes = profissional.getJornadasTrabalho().stream().map(jornada -> jornada.getDiaSemana()).toList();
+            for (Integer dia : dto.diasDeAtendimento()) {
+                if (!diasExistentes.contains(dia)) {
+                    var jornada = new JornadaTrabalho();
+                    jornada.setDiaSemana(dia);
+                    jornada.setHoraInicio(LocalTime.of(8, 0));
+                    jornada.setHoraFim(LocalTime.of(18, 0));
+                    jornada.setProfissional(profissional);
+                    profissional.getJornadasTrabalho().add(jornada);
+                }
+            }
+        }
+
+        if (dto.diasDeFolga() != null) {
+            List<LocalDate> novasFolgas = dto.diasDeFolga().stream().map(LocalDate::parse).toList();
+            profissional.getFolgas().removeIf(f -> !novasFolgas.contains(f.getData()));
+            
+            List<LocalDate> folgasExistentes = profissional.getFolgas().stream().map(folga -> folga.getData()).toList();
+            for (LocalDate novaFolga : novasFolgas) {
+                if (!folgasExistentes.contains(novaFolga)) {
+                    var folga = new Folga();
+                    folga.setData(novaFolga);
+                    folga.setMotivo("Folga");
+                    folga.setProfissional(profissional);
+                    profissional.getFolgas().add(folga);
+                }
+            }
+        }
         
         validarEAssociarServicos(profissional, dto.idsServicos(), estabelecimentoId);
 
@@ -91,7 +144,7 @@ public class ProfissionalService {
                 
         if (servicos.size() != idsServicos.size() || !todosServicosDoEstabelecimento)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Um ou mais serviços são inválidos ou não pertencem ao estabelecimento.");
-    
+        
         profissional.setServicos(servicos);
     }
 }
