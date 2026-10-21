@@ -147,4 +147,13 @@ public class ProfissionalService {
         
         profissional.setServicos(servicos);
     }
+
+    @Transactional(readOnly = true)
+    public List<ProfissionalResponseDTO> listarPorServicoPublico(Long estabelecimentoId, Long servicoId)
+    {
+        return profissionalRepository.findByEstabelecimentoIdAndServicosId(estabelecimentoId, servicoId)
+                .stream()
+                .map(ProfissionalResponseDTO::from)
+                .toList();
+    }
 }

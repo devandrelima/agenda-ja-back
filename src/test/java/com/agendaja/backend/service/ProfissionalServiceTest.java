@@ -117,4 +117,26 @@ class ProfissionalServiceTest {
 
         verify(authorizationService).validarAcesso("gestor@email.com", 1L);
     }
+
+    @Test
+    void listarPorServicoPublico_deveRetornarProfissionaisDoServico() {
+        var estabelecimento = new Estabelecimento();
+        estabelecimento.setId(1L);
+
+        var profissional = new Profissional();
+        profissional.setId(1L);
+        profissional.setNome("Lucas");
+        profissional.setEstabelecimento(estabelecimento);
+        profissional.setEspecialidades(List.of("Corte"));
+
+        when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
+                .thenReturn(List.of(profissional));
+
+        var response = profissionalService.listarPorServicoPublico(1L, 10L);
+
+        assertEquals(1, response.size());
+        assertEquals("Lucas", response.get(0).nome());
+        // Garante que o service de autorização (segurança) não foi chamado em rotas públicas
+        verifyNoInteractions(authorizationService); 
+    }
 }
