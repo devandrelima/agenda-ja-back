@@ -143,38 +143,4 @@ class ProfissionalServiceTest {
         assertEquals("Lucas", response.get(0).nome());
         verifyNoInteractions(authorizationService); 
     }
-
-    @Test
-    void sortearProfissionalPorServico_deveRetornarUmProfissional() {
-        var estabelecimento = new Estabelecimento();
-        estabelecimento.setId(1L);
-
-        var servico = new Servico();
-        servico.setId(10L);
-        servico.setNome("Corte");
-        servico.setEstabelecimento(estabelecimento);
-
-        var profissional = new Profissional();
-        profissional.setId(1L);
-        profissional.setNome("Lucas");
-        profissional.setEstabelecimento(estabelecimento);
-        profissional.setServicos(List.of(servico));
-
-        when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
-                .thenReturn(List.of(profissional));
-
-        var response = profissionalService.sortearProfissionalPorServico(1L, 10L);
-
-        assertNotNull(response);
-        assertEquals("Lucas", response.nome());
-    }
-
-    @Test
-    void sortearProfissionalPorServico_deveLancarExcecaoSeNaoHouverProfissional() {
-        when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
-                .thenReturn(List.of());
-
-        assertThrows(ResponseStatusException.class, 
-                () -> profissionalService.sortearProfissionalPorServico(1L, 10L));
-    }
 }

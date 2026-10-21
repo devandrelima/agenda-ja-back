@@ -18,7 +18,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -156,17 +155,5 @@ public class ProfissionalService {
                 .stream()
                 .map(ProfissionalResponseDTO::from)
                 .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public ProfissionalResponseDTO sortearProfissionalPorServico(Long estabelecimentoId, Long servicoId)
-    {
-        List<Profissional> profissionais = profissionalRepository.findByEstabelecimentoIdAndServicosId(estabelecimentoId, servicoId);
-        
-        if (profissionais.isEmpty())
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum profissional encontrado para este serviço.");
-        
-        int randomIndex = new Random().nextInt(profissionais.size());
-        return ProfissionalResponseDTO.from(profissionais.get(randomIndex));
     }
 }
