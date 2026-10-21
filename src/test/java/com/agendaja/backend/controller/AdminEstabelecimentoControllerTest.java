@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -57,6 +58,8 @@ class AdminEstabelecimentoControllerTest {
 	void devePermitirAcessoAoProprioEstabelecimento()
 			throws Exception {
 
+		UUID publicId = UUID.randomUUID();
+
 		var estabelecimento = new Estabelecimento(
 				1L,
 				"Barbearia Teste",
@@ -65,6 +68,8 @@ class AdminEstabelecimentoControllerTest {
 				"Mossoró/RN"
 		);
 
+		estabelecimento.setPublicId(publicId);
+
 		when(estabelecimentoRepository.findById(1L))
 				.thenReturn(Optional.of(estabelecimento));
 
@@ -72,6 +77,7 @@ class AdminEstabelecimentoControllerTest {
 						.with(user("gestor@email.com").roles("GESTOR")))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(1))
+				.andExpect(jsonPath("$.publicId").value(publicId.toString()))
 				.andExpect(jsonPath("$.nome").value("Barbearia Teste"));
 
 		verify(authorizationService)
