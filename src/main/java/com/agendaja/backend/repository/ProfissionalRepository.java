@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface ProfissionalRepository extends JpaRepository<Profissional, Long> {
     List<Profissional> findByEstabelecimentoId(Long estabelecimentoId);
     Optional<Profissional> findByIdAndEstabelecimentoId(Long id, Long estabelecimentoId);
+    List<Profissional> findByEstabelecimentoIdAndServicosId(Long estabelecimentoId, Long servicoId);
 }
