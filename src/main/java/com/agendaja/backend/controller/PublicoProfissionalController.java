@@ -24,14 +24,4 @@ public class PublicoProfissionalController {
     {
         return profissionalService.listarPorServicoPublico(estabelecimentoId, servicoId);
     }
-
-    @Operation(
-            summary = "Sortear profissional elegível",
-            description = "Retorna um profissional aleatório que realize o serviço especificado."
-    )
-    @GetMapping("/aleatorio")
-    public ProfissionalResponseDTO sortearPorServico(@PathVariable Long estabelecimentoId, @PathVariable Long servicoId)
-    {
-        return profissionalService.sortearProfissionalPorServico(estabelecimentoId, servicoId);
-    }
 }
