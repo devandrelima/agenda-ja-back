@@ -125,11 +125,16 @@ class ProfissionalServiceTest {
         var estabelecimento = new Estabelecimento();
         estabelecimento.setId(1L);
 
+        var servico = new Servico();
+        servico.setId(10L);
+        servico.setNome("Corte");
+        servico.setEstabelecimento(estabelecimento);
+
         var profissional = new Profissional();
         profissional.setId(1L);
         profissional.setNome("Lucas");
         profissional.setEstabelecimento(estabelecimento);
-        profissional.setEspecialidades(List.of("Corte"));
+        profissional.setServicos(List.of(servico));
 
         when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
                 .thenReturn(List.of(profissional));
@@ -138,7 +143,6 @@ class ProfissionalServiceTest {
 
         assertEquals(1, response.size());
         assertEquals("Lucas", response.get(0).nome());
-        // Garante que o service de autorização (segurança) não foi chamado em rotas públicas
         verifyNoInteractions(authorizationService); 
     }
 
@@ -147,10 +151,16 @@ class ProfissionalServiceTest {
         var estabelecimento = new Estabelecimento();
         estabelecimento.setId(1L);
 
+        var servico = new Servico();
+        servico.setId(10L);
+        servico.setNome("Corte");
+        servico.setEstabelecimento(estabelecimento);
+
         var profissional = new Profissional();
         profissional.setId(1L);
         profissional.setNome("Lucas");
         profissional.setEstabelecimento(estabelecimento);
+        profissional.setServicos(List.of(servico));
 
         when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
                 .thenReturn(List.of(profissional));
