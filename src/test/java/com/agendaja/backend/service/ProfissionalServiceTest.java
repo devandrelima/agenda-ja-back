@@ -139,4 +139,32 @@ class ProfissionalServiceTest {
         // Garante que o service de autorização (segurança) não foi chamado em rotas públicas
         verifyNoInteractions(authorizationService); 
     }
+
+    @Test
+    void sortearProfissionalPorServico_deveRetornarUmProfissional() {
+        var estabelecimento = new Estabelecimento();
+        estabelecimento.setId(1L);
+
+        var profissional = new Profissional();
+        profissional.setId(1L);
+        profissional.setNome("Lucas");
+        profissional.setEstabelecimento(estabelecimento);
+
+        when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
+                .thenReturn(List.of(profissional));
+
+        var response = profissionalService.sortearProfissionalPorServico(1L, 10L);
+
+        assertNotNull(response);
+        assertEquals("Lucas", response.nome());
+    }
+
+    @Test
+    void sortearProfissionalPorServico_deveLancarExcecaoSeNaoHouverProfissional() {
+        when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
+                .thenReturn(List.of());
+
+        assertThrows(ResponseStatusException.class, 
+                () -> profissionalService.sortearProfissionalPorServico(1L, 10L));
+    }
 }

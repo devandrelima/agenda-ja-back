@@ -37,4 +37,16 @@ class PublicoProfissionalControllerTest {
                 .andExpect(jsonPath("$[0].id").value(1))
                 .andExpect(jsonPath("$[0].nome").value("Lucas"));
     }
+
+    @Test
+    void sortearPorServico_deveRetornarUmProfissionalAleatorio() throws Exception {
+        var responseDTO = new ProfissionalResponseDTO(1L, "Lucas", List.of("Corte"), List.of(10L), List.of(1, 2), List.of(), 1L);
+
+        when(profissionalService.sortearProfissionalPorServico(1L, 10L)).thenReturn(responseDTO);
+
+        mockMvc.perform(get(BASE_URL + "/aleatorio"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.nome").value("Lucas"));
+    }
 }
