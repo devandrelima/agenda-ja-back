@@ -9,9 +9,6 @@ public record ProfissionalRequestDTO(
         @NotBlank(message = "O nome é obrigatório")
         String nome,
         
-        @NotEmpty(message = "Selecione ao menos uma especialidade")
-        List<String> especialidades,
-        
         @NotEmpty(message = "Selecione ao menos um serviço")
         List<Long> idsServicos,
         

@@ -38,7 +38,6 @@ public class ProfissionalService {
         var profissional = new Profissional();
         profissional.setNome(dto.nome());
         profissional.setEstabelecimento(estabelecimento);
-        profissional.setEspecialidades(dto.especialidades());
         
         if (dto.diasDeAtendimento() != null) {
             for (Integer dia : dto.diasDeAtendimento()) {
@@ -90,7 +89,6 @@ public class ProfissionalService {
 
         var profissional = buscarProfissional(estabelecimentoId, profissionalId);
         profissional.setNome(dto.nome());
-        profissional.setEspecialidades(dto.especialidades());
         
         if (dto.diasDeAtendimento() != null) {
             profissional.getJornadasTrabalho().removeIf(j -> !dto.diasDeAtendimento().contains(j.getDiaSemana()));

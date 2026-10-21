@@ -20,6 +20,13 @@ public class Profissional {
     @Column(nullable = false)
     private String nome;
 
+    @Column(name = "foto_url")
+    private String fotoUrl;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "estabelecimento_id", nullable = false)
     private Estabelecimento estabelecimento;
@@ -31,11 +38,6 @@ public class Profissional {
             inverseJoinColumns = @JoinColumn(name = "servico_id")
     )
     private List<Servico> servicos = new ArrayList<>();
-
-    @ElementCollection
-    @CollectionTable(name = "profissional_especialidades", joinColumns = @JoinColumn(name = "profissional_id"))
-    @Column(name = "especialidade")
-    private List<String> especialidades = new ArrayList<>();
 
     @OneToMany(mappedBy = "profissional", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<JornadaTrabalho> jornadasTrabalho = new ArrayList<>();

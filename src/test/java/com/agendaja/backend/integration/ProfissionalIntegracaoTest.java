@@ -71,7 +71,7 @@ class ProfissionalIntegracaoTest {
 	{
 		return profissionalService.criar(
 				estabelecimentoId,
-				new ProfissionalRequestDTO("Ana", List.of("Corte", "Barba"), List.of(servicoId), List.of(1, 2), List.of()),
+				new ProfissionalRequestDTO("Ana", List.of(servicoId), List.of(1, 2), List.of()),
 				emailGestor
 		).id();
 	}
@@ -84,7 +84,7 @@ class ProfissionalIntegracaoTest {
 		var profissionais = profissionalService.listar(estabelecimentoId, emailGestor);
 
 		assertEquals(1, profissionais.size());
-		assertEquals(List.of("Corte", "Barba"), profissionais.get(0).especialidades());
+		assertEquals(List.of("Corte"), profissionais.get(0).especialidades());
 	}
 
 	@Test
@@ -94,6 +94,6 @@ class ProfissionalIntegracaoTest {
 
 		var profissional = profissionalService.consultar(estabelecimentoId, profissionalId, emailGestor);
 
-		assertEquals(List.of("Corte", "Barba"), profissional.especialidades());
+		assertEquals(List.of("Corte"), profissional.especialidades());
 	}
 }

@@ -37,7 +37,6 @@ class ProfissionalControllerTest {
     private final String dtoValidoJson = """
             {
               "nome": "Lucas Mendes",
-              "especialidades": ["Corte", "Barba"],
               "idsServicos": [1, 2],
               "diasDeAtendimento": [1, 2, 3, 4, 5],
               "diasDeFolga": ["2026-10-15"]
@@ -74,7 +73,6 @@ class ProfissionalControllerTest {
                 .content(jsonInvalido))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.erros.nome").exists())
-                .andExpect(jsonPath("$.erros.especialidades").exists())
                 .andExpect(jsonPath("$.erros.idsServicos").exists())
                 .andExpect(jsonPath("$.erros.diasDeAtendimento").exists())
                 .andExpect(jsonPath("$.erros.diasDeFolga").exists());

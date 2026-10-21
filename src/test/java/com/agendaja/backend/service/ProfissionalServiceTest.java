@@ -45,15 +45,15 @@ class ProfissionalServiceTest {
 
         var servico = new Servico();
         servico.setId(10L);
+        servico.setNome("Corte");
         servico.setEstabelecimento(estabelecimento);
 
-        var dto = new ProfissionalRequestDTO("Lucas Mendes", List.of("Corte"), List.of(10L), List.of(1), List.of("2026-10-15"));
+        var dto = new ProfissionalRequestDTO("Lucas Mendes", List.of(10L), List.of(1), List.of("2026-10-15"));
 
         var profissionalSalvo = new Profissional();
         profissionalSalvo.setId(1L);
         profissionalSalvo.setNome("Lucas Mendes");
         profissionalSalvo.setEstabelecimento(estabelecimento);
-        profissionalSalvo.setEspecialidades(List.of("Corte"));
         profissionalSalvo.setServicos(List.of(servico));
 
         when(estabelecimentoRepository.findById(1L)).thenReturn(Optional.of(estabelecimento));
@@ -65,6 +65,7 @@ class ProfissionalServiceTest {
         assertNotNull(response);
         assertEquals(1L, response.id());
         assertEquals("Lucas Mendes", response.nome());
+        assertEquals(List.of("Corte"), response.especialidades());
 
         verify(authorizationService).validarAcesso("gestor@email.com", 1L);
     }
@@ -81,7 +82,7 @@ class ProfissionalServiceTest {
         servicoOutroEstabelecimento.setId(10L);
         servicoOutroEstabelecimento.setEstabelecimento(estabelecimento2);
 
-        var dto = new ProfissionalRequestDTO("Lucas", List.of("Corte"), List.of(10L), List.of(1), List.of());
+        var dto = new ProfissionalRequestDTO("Lucas", List.of(10L), List.of(1), List.of());
 
         when(estabelecimentoRepository.findById(1L)).thenReturn(Optional.of(estabelecimento1));
         when(servicoRepository.findAllById(List.of(10L))).thenReturn(List.of(servicoOutroEstabelecimento));
@@ -98,6 +99,7 @@ class ProfissionalServiceTest {
 
         var servico = new Servico();
         servico.setId(10L);
+        servico.setNome("Barba");
         servico.setEstabelecimento(estabelecimento);
 
         var profissionalExistente = new Profissional();
@@ -105,7 +107,7 @@ class ProfissionalServiceTest {
         profissionalExistente.setNome("Nome Antigo");
         profissionalExistente.setEstabelecimento(estabelecimento);
 
-        var dto = new ProfissionalRequestDTO("Nome Novo", List.of("Barba"), List.of(10L), List.of(2), List.of());
+        var dto = new ProfissionalRequestDTO("Nome Novo", List.of(10L), List.of(2), List.of());
 
         when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissionalExistente));
         when(servicoRepository.findAllById(List.of(10L))).thenReturn(List.of(servico));
