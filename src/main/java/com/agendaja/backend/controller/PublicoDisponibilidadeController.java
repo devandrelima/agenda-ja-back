@@ -18,7 +18,7 @@ public class PublicoDisponibilidadeController {
 
     @Operation(
             summary = "Consultar horários disponíveis",
-            description = "Retorna horários livres no formato HH:mm."
+            description = "Retorna horários livres no formato HH:mm. Se profissionalId for omitido, faz a união das agendas de todos os profissionais aptos."
     )
     @GetMapping
     public List<String> consultar(@PathVariable Long estabelecimentoId, @PathVariable Long servicoId, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data, @RequestParam(required = false) Long profissionalId

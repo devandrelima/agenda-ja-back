@@ -30,7 +30,23 @@ public class CalculadoraDisponibilidadeService {
     {
         List<LocalTime> horarios;
 
-        horarios = calcularParaUmProfissional(estabelecimentoId, profissionalId, servicoId, data);
+        if (profissionalId != null) {
+            // Busca horários de um profissional específico
+            horarios = calcularParaUmProfissional(estabelecimentoId, profissionalId, servicoId, data);
+        } else {
+            // Busca horários de TODOS os profissionais que fazem aquele serviço (Opção "Qualquer profissional")
+            List<Profissional> profissionais = profissionalRepository.findByEstabelecimentoIdAndServicosId(estabelecimentoId, servicoId);
+
+            if (profissionais.isEmpty())
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum profissional encontrado para este serviço.");
+            
+            // Une e ordena todos os horários livres encontrados, removendo duplicações (distinct)
+            horarios = profissionais.stream()
+                    .flatMap(p -> calcularParaUmProfissional(estabelecimentoId, p.getId(), servicoId, data).stream())
+                    .distinct()
+                    .sorted()
+                    .toList();
+        }
 
         // Converte os horários de LocalTime para String "HH:mm" para facilitar a leitura no frontend
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
