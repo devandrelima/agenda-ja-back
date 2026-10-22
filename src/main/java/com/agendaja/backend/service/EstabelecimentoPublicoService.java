@@ -17,6 +17,7 @@ import java.util.UUID;
 public class EstabelecimentoPublicoService {
 
 	private final EstabelecimentoRepository estabelecimentoRepository;
+	private final ConfiguracaoEstabelecimentoService configuracaoService;
 
 	@Transactional(readOnly = true)
 	public EstabelecimentoPublicoDTO consultar(UUID publicId) {
@@ -28,6 +29,6 @@ public class EstabelecimentoPublicoService {
 						"Estabelecimento não encontrado."
 				));
 
-		return EstabelecimentoPublicoDTO.from(estabelecimento);
+		return EstabelecimentoPublicoDTO.from(estabelecimento, configuracaoService.lerHorarios(estabelecimento));
 	}
 }

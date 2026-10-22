@@ -3,6 +3,7 @@ package com.agendaja.backend.dto;
 import com.agendaja.backend.model.Estabelecimento;
 
 import java.util.UUID;
+import java.util.List;
 
 public record EstabelecimentoPublicoDTO(
 		Long id,
@@ -10,10 +11,12 @@ public record EstabelecimentoPublicoDTO(
 		String nome,
 		String categoria,
 		String imagemUrl,
-		String localizacao
+		String localizacao,
+		List<HorarioFuncionamentoDTO> horariosFuncionamento
 ) {
 	public static EstabelecimentoPublicoDTO from(
-			Estabelecimento estabelecimento
+			Estabelecimento estabelecimento,
+			List<HorarioFuncionamentoDTO> horarios
 	) {
 		return new EstabelecimentoPublicoDTO(
 				estabelecimento.getId(),
@@ -21,7 +24,8 @@ public record EstabelecimentoPublicoDTO(
 				estabelecimento.getNome(),
 				estabelecimento.getCategoria(),
 				estabelecimento.getImagemUrl(),
-				estabelecimento.getLocalizacao()
+				estabelecimento.getLocalizacao(),
+				horarios
 		);
 	}
 }

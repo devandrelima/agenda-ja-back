@@ -24,6 +24,9 @@ class EstabelecimentoPublicoServiceTest {
 	@Mock
 	private EstabelecimentoRepository repository;
 
+	@Mock
+	private ConfiguracaoEstabelecimentoService configuracaoService;
+
 	@InjectMocks
 	private EstabelecimentoPublicoService service;
 

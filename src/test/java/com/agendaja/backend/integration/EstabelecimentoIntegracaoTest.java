@@ -1,11 +1,16 @@
 package com.agendaja.backend.integration;
 
 import com.agendaja.backend.dto.EstabelecimentoCadastroDTO;
+import com.agendaja.backend.dto.HorarioFuncionamentoDTO;
 import com.agendaja.backend.exception.EmailJaCadastradoException;
 import com.agendaja.backend.model.Usuario;
 import com.agendaja.backend.repository.EstabelecimentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
 import com.agendaja.backend.service.EstabelecimentoService;
+import com.agendaja.backend.service.ConfiguracaoEstabelecimentoService;
+import com.agendaja.backend.service.EstabelecimentoPublicoService;
+
+import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -42,6 +49,15 @@ class EstabelecimentoIntegracaoTest {
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+
+	@Autowired
+	private ConfiguracaoEstabelecimentoService configuracaoService;
+
+	@Autowired
+	private EstabelecimentoPublicoService publicoService;
+
+	@Autowired
+	private EntityManager entityManager;
 
 	private EstabelecimentoCadastroDTO criarDto(String email)
 	{
@@ -132,5 +148,31 @@ class EstabelecimentoIntegracaoTest {
 		assertNotNull(clienteSalvo.getId());
 		assertNull(clienteSalvo.getEstabelecimento());
 		assertEquals("CLIENTE", clienteSalvo.getRole());
+	}
+
+	@Test
+	void devePersistirConfiguracoesEPublicarNaVitrine() {
+		estabelecimentoService.cadastrarEstabelecimentoEGestor(criarDto("config@email.com"));
+		var estabelecimento = estabelecimentoRepository.findAll().get(0);
+		var id = estabelecimento.getId();
+		var publicId = estabelecimento.getPublicId();
+		var horarios = List.of(
+				new HorarioFuncionamentoDTO(List.of(new HorarioFuncionamentoDTO.Turno("08:00", "12:00"))),
+				new HorarioFuncionamentoDTO(List.of()), new HorarioFuncionamentoDTO(List.of()),
+				new HorarioFuncionamentoDTO(List.of()), new HorarioFuncionamentoDTO(List.of()),
+				new HorarioFuncionamentoDTO(List.of()), new HorarioFuncionamentoDTO(List.of())
+		);
+
+		configuracaoService.salvarDados(id, "config@email.com", "Novo nome", "BARBEARIA", "Centro");
+		configuracaoService.salvarCapa(id, "config@email.com", "data:image/jpeg;base64,dGVzdGU=");
+		configuracaoService.salvarHorarios(id, "config@email.com", horarios);
+		entityManager.flush();
+		entityManager.clear();
+
+		var vitrine = publicoService.consultar(publicId);
+		assertEquals("Novo nome", vitrine.nome());
+		assertEquals("Centro", vitrine.localizacao());
+		assertEquals("data:image/jpeg;base64,dGVzdGU=", vitrine.imagemUrl());
+		assertEquals(horarios, vitrine.horariosFuncionamento());
 	}
 }

@@ -5,6 +5,7 @@ import com.agendaja.backend.config.SecurityConfig;
 import com.agendaja.backend.model.Estabelecimento;
 import com.agendaja.backend.repository.EstabelecimentoRepository;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
+import com.agendaja.backend.service.ConfiguracaoEstabelecimentoService;
 
 import org.junit.jupiter.api.Test;
 
@@ -37,6 +38,9 @@ class AdminEstabelecimentoControllerTest {
 
 	@MockitoBean
 	private EstabelecimentoAuthorizationService authorizationService;
+
+	@MockitoBean
+	private ConfiguracaoEstabelecimentoService configuracaoEstabelecimentoService;
 
 	private static final String URL =
 			"/api/admin/estabelecimentos/1";

@@ -3,6 +3,8 @@ package com.agendaja.backend.controller;
 
 import com.agendaja.backend.repository.EstabelecimentoRepository;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
+import com.agendaja.backend.service.ConfiguracaoEstabelecimentoService;
+import com.agendaja.backend.dto.HorarioFuncionamentoDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
+import java.util.List;
 
 
 @RestController
@@ -25,6 +28,7 @@ public class AdminEstabelecimentoController {
 	private final EstabelecimentoRepository estabelecimentoRepository;
 
 	private final EstabelecimentoAuthorizationService authorizationService;
+	private final ConfiguracaoEstabelecimentoService configuracaoService;
 
 	@Operation(
 			summary = "Consultar dados administrativos do estabelecimento",
@@ -69,9 +73,31 @@ public class AdminEstabelecimentoController {
 				estabelecimento.getNome(),
 				estabelecimento.getCategoria(),
 				estabelecimento.getImagemUrl(),
-				estabelecimento.getLocalizacao()
+				estabelecimento.getLocalizacao(),
+				configuracaoService.lerHorarios(estabelecimento)
 		);
 	}
+
+	@PutMapping("/{id}/dados")
+	public void atualizarDados(@PathVariable Long id, Authentication authentication,
+			@RequestBody DadosRequest dados) {
+		configuracaoService.salvarDados(id, authentication.getName(), dados.nome(), dados.categoria(), dados.localizacao());
+	}
+
+	@PutMapping("/{id}/capa")
+	public void atualizarCapa(@PathVariable Long id, Authentication authentication,
+			@RequestBody CapaRequest dados) {
+		configuracaoService.salvarCapa(id, authentication.getName(), dados.imagemUrl());
+	}
+
+	@PutMapping("/{id}/horarios")
+	public void atualizarHorarios(@PathVariable Long id, Authentication authentication,
+			@RequestBody List<HorarioFuncionamentoDTO> horarios) {
+		configuracaoService.salvarHorarios(id, authentication.getName(), horarios);
+	}
+
+	public record DadosRequest(String nome, String categoria, String localizacao) {}
+	public record CapaRequest(String imagemUrl) {}
 
 	public record EstabelecimentoResumoDTO(
 			Long id,
@@ -79,6 +105,7 @@ public class AdminEstabelecimentoController {
 			String nome,
 			String categoria,
 			String imagemUrl,
-			String localizacao
+			String localizacao,
+			List<HorarioFuncionamentoDTO> horariosFuncionamento
 	) {}
 }

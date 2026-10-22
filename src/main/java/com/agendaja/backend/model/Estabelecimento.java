@@ -30,8 +30,11 @@ public class Estabelecimento {
 
     private String categoria;
 
-    @Column(name = "imagem_url")
+    @Column(name = "imagem_url", columnDefinition = "text")
     private String imagemUrl;
+
+    @Column(name = "horarios_funcionamento", columnDefinition = "text")
+    private String horariosFuncionamento;
 
     private String localizacao;
 
