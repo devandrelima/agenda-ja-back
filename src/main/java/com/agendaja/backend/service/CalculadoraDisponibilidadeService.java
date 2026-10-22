@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +26,19 @@ public class CalculadoraDisponibilidadeService {
     private record Intervalo(LocalTime inicio, LocalTime fim) {}
 
     @Transactional(readOnly = true)
-    public List<LocalTime> calcularHorariosDisponiveis(Long estabelecimentoId, Long profissionalId, Long servicoId, LocalDate data)
+    public List<String> consultarHorarios(Long estabelecimentoId, Long servicoId, Long profissionalId, LocalDate data)
+    {
+        List<LocalTime> horarios;
+
+        horarios = calcularParaUmProfissional(estabelecimentoId, profissionalId, servicoId, data);
+
+        // Converte os horários de LocalTime para String "HH:mm" para facilitar a leitura no frontend
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        return horarios.stream().map(h -> h.format(formatter)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocalTime> calcularParaUmProfissional(Long estabelecimentoId, Long profissionalId, Long servicoId, LocalDate data)
     {
         Profissional profissional = profissionalRepository.findByIdAndEstabelecimentoId(profissionalId, estabelecimentoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado."));
