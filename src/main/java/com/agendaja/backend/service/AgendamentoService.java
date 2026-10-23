@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.dao.ConcurrencyFailureException;
 
 @Service
 @RequiredArgsConstructor
@@ -55,10 +56,10 @@ public class AgendamentoService {
         try {
             agendamento = agendamentoRepository.save(agendamento);
             
-            // Força a inserção imediata no Postgres. Se houver sobreposição, a Exclusion Constraint lança exceção.
+            // Força a inserção imediata no Postgres. Se houver sobreposição ou deadlock, ele lança exceção aqui.
             agendamentoRepository.flush();
-        } catch (DataIntegrityViolationException e) {
-            // Conflito de agenda identificado pelo banco de dados
+        } catch (DataIntegrityViolationException | ConcurrencyFailureException e) {
+            // Conflito de agenda ou impasse de concorrência
             throw new ResponseStatusException(HttpStatus.CONFLICT, "O horário selecionado não está mais disponível. Por favor, escolha outro.");
         }
 
