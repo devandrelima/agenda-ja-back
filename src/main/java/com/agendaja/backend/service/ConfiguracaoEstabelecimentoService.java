@@ -15,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -82,7 +81,7 @@ public class ConfiguracaoEstabelecimentoService {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Turno inválido.");
                 }
             }
-            ordenados.sort(Comparator.comparing(HorarioFuncionamentoDTO.Turno::inicio));
+            ordenados.sort((primeiro, segundo) -> primeiro.inicio().compareTo(segundo.inicio()));
             for (int i = 1; i < ordenados.size(); i++)
                 if (ordenados.get(i).inicio().compareTo(ordenados.get(i - 1).fim()) < 0)
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Turnos sobrepostos.");
