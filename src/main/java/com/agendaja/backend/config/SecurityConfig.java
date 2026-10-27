@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/estabelecimentos").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/estabelecimentos/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("GESTOR")
+                .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 .anyRequest().authenticated()
         )
         .formLogin(form -> form.disable())
