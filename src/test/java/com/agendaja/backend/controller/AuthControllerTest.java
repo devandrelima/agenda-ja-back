@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -157,4 +158,67 @@ class AuthControllerTest {
 		mockMvc.perform(get("/api/auth/me"))
 				.andExpect(status().isUnauthorized());
 	}
+
+	@Test
+	void deveAutenticarClienteEManterSessao() throws Exception {
+
+		String emailCliente = "maria@email.com";
+
+		var autenticacao =
+				UsernamePasswordAuthenticationToken.authenticated(
+						emailCliente,
+						null,
+						List.of(new SimpleGrantedAuthority("ROLE_CLIENTE"))
+				);
+
+		when(authenticationManager.authenticate(any()))
+				.thenReturn(autenticacao);
+
+		var cliente = new Usuario(
+				10L,
+				null,
+				"Maria Silva",
+				emailCliente,
+				"hash-bcrypt",
+				"CLIENTE"
+		);
+
+		when(usuarioRepository.findByEmail(emailCliente))
+				.thenReturn(Optional.of(cliente));
+
+		String loginJson = """
+        {
+            "email": "maria@email.com",
+            "senha": "SenhaSegura123"
+        }
+        """;
+
+		var resultado = mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(loginJson))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(10))
+				.andExpect(jsonPath("$.email").value(emailCliente))
+				.andExpect(jsonPath("$.role").value("CLIENTE"))
+				.andExpect(jsonPath("$.estabelecimentoId").value(
+						org.hamcrest.Matchers.nullValue()
+				))
+				.andReturn();
+
+		MockHttpSession sessao =
+				(MockHttpSession) resultado.getRequest().getSession(false);
+
+		assertNotNull(sessao);
+
+		mockMvc.perform(get("/api/auth/me")
+						.session(sessao))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.email").value(emailCliente))
+				.andExpect(jsonPath("$.role").value("CLIENTE"))
+				.andExpect(jsonPath("$.estabelecimentoId").value(
+						org.hamcrest.Matchers.nullValue()
+				));
+	}
+
 }
