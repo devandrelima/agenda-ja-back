@@ -21,14 +21,18 @@ public class UsuarioDetailsService implements UserDetailsService {
 	private final UsuarioRepository usuarioRepository;
 
 	@Override
-	public UserDetails loadUserByUsername(String email)
+	public UserDetails loadUserByUsername(String identificador)
 			throws UsernameNotFoundException {
 
-		String emailNormalizado = email.strip()
-				.toLowerCase(Locale.ROOT);
+		String entrada = identificador.strip();
 
-		var usuario = usuarioRepository
-				.findByEmail(emailNormalizado)
+		var usuario = (entrada.contains("@")
+				? usuarioRepository.findByEmail(
+						entrada.toLowerCase(Locale.ROOT)
+				)
+				: usuarioRepository.findByTelefone(
+						entrada.replaceAll("\\D", "")
+				))
 				.orElseThrow(() ->
 						new UsernameNotFoundException(
 								"Usuário não encontrado"

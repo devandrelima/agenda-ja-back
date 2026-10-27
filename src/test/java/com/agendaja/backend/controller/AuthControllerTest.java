@@ -221,4 +221,32 @@ class AuthControllerTest {
 				));
 	}
 
+	@Test
+	void deveAceitarTelefoneComoIdentificadorNoLogin() throws Exception {
+
+		String telefone = "84999999999";
+
+		var autenticacao = UsernamePasswordAuthenticationToken.authenticated(
+				"maria@email.com",
+				null,
+				List.of(new SimpleGrantedAuthority("ROLE_CLIENTE"))
+		);
+		when(authenticationManager.authenticate(any())).thenReturn(autenticacao);
+
+		var cliente = new Usuario(
+				10L, null, "Maria Silva", "maria@email.com", "hash", "CLIENTE"
+		);
+		cliente.setTelefone(telefone);
+		when(usuarioRepository.findByEmail("maria@email.com"))
+				.thenReturn(Optional.of(cliente));
+
+		mockMvc.perform(post("/api/auth/login")
+						.with(csrf())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"email\": \"(84) 99999-9999\", \"senha\": \"SenhaSegura123\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.telefone").value(telefone))
+				.andExpect(jsonPath("$.role").value("CLIENTE"));
+	}
+
 }

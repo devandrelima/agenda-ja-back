@@ -176,6 +176,7 @@ public class AuthController {
 				usuario.getId(),
 				usuario.getNome(),
 				usuario.getEmail(),
+				usuario.getTelefone(),
 				usuario.getRole(),
 				estabelecimentoId
 		);
