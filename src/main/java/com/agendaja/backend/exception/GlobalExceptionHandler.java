@@ -1,6 +1,7 @@
 
 package com.agendaja.backend.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -47,6 +48,32 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(resposta);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> tratarViolacaoIntegridade(
+            DataIntegrityViolationException exception
+    ) {
+        Throwable causa = exception;
+
+        while (causa != null) {
+            if (causa instanceof org.hibernate.exception.ConstraintViolationException violacao
+                    && "uk_avaliacoes_cliente_estabelecimento".equals(
+                    violacao.getConstraintName()
+            )) {
+
+                return ResponseEntity
+                        .status(HttpStatus.CONFLICT)
+                        .body(Map.of(
+                                "mensagem",
+                                "Você já avaliou este estabelecimento."
+                        ));
+            }
+
+            causa = causa.getCause();
+        }
+
+        throw exception;
     }
 
 }
