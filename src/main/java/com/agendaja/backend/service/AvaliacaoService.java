@@ -73,6 +73,8 @@ public class AvaliacaoService {
 		avaliacao.setNota(dto.nota());
 		avaliacao.setComentario(dto.comentario());
 
+		avaliacaoRepository.flush();
+
 		return AvaliacaoResponseDTO.from(avaliacao);
 	}
 
