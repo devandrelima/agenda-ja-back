@@ -1,6 +1,7 @@
 package com.agendaja.backend.service;
 
 import com.agendaja.backend.builder.AgendamentoBuilder;
+import com.agendaja.backend.dto.AgendamentoDetalhesDTO;
 import com.agendaja.backend.dto.AgendamentoRequestDTO;
 import com.agendaja.backend.dto.AgendamentoResponseDTO;
 import com.agendaja.backend.event.AgendamentoCriadoEvent;
@@ -67,5 +68,30 @@ public class AgendamentoService {
         eventPublisher.publishEvent(new AgendamentoCriadoEvent(agendamento));
 
         return AgendamentoResponseDTO.from(agendamento);
+    }
+
+    @Transactional(readOnly = true)
+    public AgendamentoDetalhesDTO consultarDetalhes(Long estabelecimentoId, Long agendamentoId, String emailUsuario)
+    {
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não encontrado."));
+
+        if (!agendamento.getProfissional().getEstabelecimento().getId().equals(estabelecimentoId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento não pertence a este estabelecimento.");
+
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não encontrado."));
+
+        boolean isGestorDoEstabelecimento = "GESTOR".equals(usuario.getRole()) && 
+                usuario.getEstabelecimento() != null && 
+                usuario.getEstabelecimento().getId().equals(estabelecimentoId);
+                
+        boolean isClienteDoAgendamento = "CLIENTE".equals(usuario.getRole()) && 
+                agendamento.getCliente().getId().equals(usuario.getId());
+
+        if (!isGestorDoEstabelecimento && !isClienteDoAgendamento)
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para visualizar este agendamento.");
+
+        return AgendamentoDetalhesDTO.from(agendamento);
     }
 }
