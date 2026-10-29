@@ -69,7 +69,7 @@ public class ProfissionalService {
     public List<ProfissionalResponseDTO> listar(Long estabelecimentoId, String emailGestor)
     {
         authorizationService.validarAcesso(emailGestor, estabelecimentoId);
-        return profissionalRepository.findByEstabelecimentoId(estabelecimentoId)
+        return profissionalRepository.findByEstabelecimentoIdAndAtivoTrue(estabelecimentoId)
                 .stream()
                 .map(ProfissionalResponseDTO::from)
                 .toList();
@@ -129,7 +129,7 @@ public class ProfissionalService {
 
     private Profissional buscarProfissional(Long estabelecimentoId, Long profissionalId)
     {
-        return profissionalRepository.findByIdAndEstabelecimentoId(profissionalId, estabelecimentoId)
+        return profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(profissionalId, estabelecimentoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado"));
     }
     
@@ -149,9 +149,17 @@ public class ProfissionalService {
     @Transactional(readOnly = true)
     public List<ProfissionalResponseDTO> listarPorServicoPublico(Long estabelecimentoId, Long servicoId)
     {
-        return profissionalRepository.findByEstabelecimentoIdAndServicosId(estabelecimentoId, servicoId)
+        return profissionalRepository.findByEstabelecimentoIdAndServicosIdAndAtivoTrue(estabelecimentoId, servicoId)
                 .stream()
                 .map(ProfissionalResponseDTO::from)
                 .toList();
+    }
+
+    @Transactional
+    public void desativar(Long estabelecimentoId, Long profissionalId, String emailGestor)
+    {
+        authorizationService.validarAcesso(emailGestor, estabelecimentoId);
+        var profissional = buscarProfissional(estabelecimentoId, profissionalId);
+        profissional.setAtivo(false);
     }
 }

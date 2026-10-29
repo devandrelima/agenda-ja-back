@@ -35,7 +35,7 @@ public class CalculadoraDisponibilidadeService {
             horarios = calcularParaUmProfissional(estabelecimentoId, profissionalId, servicoId, data);
         } else {
             // Busca horários de TODOS os profissionais que fazem aquele serviço (Opção "Qualquer profissional")
-            List<Profissional> profissionais = profissionalRepository.findByEstabelecimentoIdAndServicosId(estabelecimentoId, servicoId);
+            List<Profissional> profissionais = profissionalRepository.findByEstabelecimentoIdAndServicosIdAndAtivoTrue(estabelecimentoId, servicoId);
 
             if (profissionais.isEmpty())
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum profissional encontrado para este serviço.");
@@ -56,7 +56,7 @@ public class CalculadoraDisponibilidadeService {
     @Transactional(readOnly = true)
     public List<LocalTime> calcularParaUmProfissional(Long estabelecimentoId, Long profissionalId, Long servicoId, LocalDate data)
     {
-        Profissional profissional = profissionalRepository.findByIdAndEstabelecimentoId(profissionalId, estabelecimentoId)
+        Profissional profissional = profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(profissionalId, estabelecimentoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado."));
 
         Servico servico = servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(servicoId, estabelecimentoId)

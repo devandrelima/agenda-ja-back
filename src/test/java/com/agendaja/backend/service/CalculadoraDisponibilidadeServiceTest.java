@@ -65,7 +65,7 @@ class CalculadoraDisponibilidadeServiceTest {
         folga.setData(dataTeste);
         profissional.getFolgas().add(folga);
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
         when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
 
         List<String> horarios = service.consultarHorarios(1L, 10L, 1L, dataTeste);
@@ -80,7 +80,7 @@ class CalculadoraDisponibilidadeServiceTest {
         jornada.setDiaSemana(2); 
         profissional.getJornadasTrabalho().add(jornada);
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
         when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
 
         List<String> horarios = service.consultarHorarios(1L, 10L, 1L, dataTeste);
@@ -96,7 +96,7 @@ class CalculadoraDisponibilidadeServiceTest {
         jornada.setHoraFim(LocalTime.of(12, 0));
         profissional.getJornadasTrabalho().add(jornada);
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
         when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
         when(agendamentoRepository.buscarAgendamentosAtivosDoDia(anyLong(), any(), any(), any())).thenReturn(List.of());
 
@@ -122,7 +122,7 @@ class CalculadoraDisponibilidadeServiceTest {
         agendamento.setDataHoraInicio(dataTeste.atTime(9, 0));
         agendamento.setDataHoraFim(dataTeste.atTime(10, 0));
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
         when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
         when(agendamentoRepository.buscarAgendamentosAtivosDoDia(anyLong(), any(), any(), any()))
                 .thenReturn(List.of(agendamento));
@@ -160,9 +160,9 @@ class CalculadoraDisponibilidadeServiceTest {
         jornada2.setHoraFim(LocalTime.of(16, 0));
         prof2.setJornadasTrabalho(List.of(jornada2));
 
-        when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L)).thenReturn(List.of(profissional, prof2));
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
-        when(profissionalRepository.findByIdAndEstabelecimentoId(2L, 1L)).thenReturn(Optional.of(prof2));
+        when(profissionalRepository.findByEstabelecimentoIdAndServicosIdAndAtivoTrue(1L, 10L)).thenReturn(List.of(profissional, prof2));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(2L, 1L)).thenReturn(Optional.of(prof2));
         when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
         when(agendamentoRepository.buscarAgendamentosAtivosDoDia(anyLong(), any(), any(), any())).thenReturn(List.of());
 

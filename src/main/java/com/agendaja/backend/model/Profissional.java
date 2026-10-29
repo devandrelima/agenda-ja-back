@@ -31,6 +31,9 @@ public class Profissional {
     @JoinColumn(name = "estabelecimento_id", nullable = false)
     private Estabelecimento estabelecimento;
 
+    @Column(nullable = false)
+    private boolean ativo = true;
+
     @ManyToMany
     @JoinTable(
             name = "profissionais_servicos",

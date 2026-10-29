@@ -44,7 +44,7 @@ class DisponibilidadeServiceTest {
                 List.of(new FolgaDTO(LocalDate.of(2026, 12, 25), "Natal"))
         );
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
 
         var response = disponibilidadeService.atualizar(1L, 1L, dto, "gestor@email.com");
 
@@ -64,7 +64,7 @@ class DisponibilidadeServiceTest {
                 List.of()
         );
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
 
         var exception = assertThrows(ResponseStatusException.class, () -> disponibilidadeService.atualizar(1L, 1L, dto, "gestor@email.com"));
         assertTrue(exception.getMessage().contains("A hora de início deve ser anterior à hora de fim"));
@@ -81,7 +81,7 @@ class DisponibilidadeServiceTest {
                 List.of()
         );
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
 
         var exception = assertThrows(ResponseStatusException.class, () -> disponibilidadeService.atualizar(1L, 1L, dto, "gestor@email.com"));
         assertTrue(exception.getMessage().contains("Existem jornadas sobrepostas para o mesmo dia"));
