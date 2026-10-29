@@ -82,7 +82,7 @@ public class DisponibilidadeService {
 
     private Profissional buscarProfissional(Long estabelecimentoId, Long profissionalId)
     {
-        return profissionalRepository.findByIdAndEstabelecimentoId(profissionalId, estabelecimentoId)
+        return profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(profissionalId, estabelecimentoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado"));
     }
 }

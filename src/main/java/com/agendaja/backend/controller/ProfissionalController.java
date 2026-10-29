@@ -52,4 +52,14 @@ public class ProfissionalController {
     ) {
         return profissionalService.editar(estabelecimentoId, profissionalId, dto, authentication.getName());
     }
+
+    @DeleteMapping("/{profissionalId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void desativar(
+            @PathVariable Long estabelecimentoId,
+            @PathVariable Long profissionalId,
+            Authentication authentication
+    ) {
+        profissionalService.desativar(estabelecimentoId, profissionalId, authentication.getName());
+    }
 }

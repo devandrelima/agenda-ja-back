@@ -109,7 +109,7 @@ class ProfissionalServiceTest {
 
         var dto = new ProfissionalRequestDTO("Nome Novo", List.of(10L), List.of(2), List.of());
 
-        when(profissionalRepository.findByIdAndEstabelecimentoId(1L, 1L)).thenReturn(Optional.of(profissionalExistente));
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissionalExistente));
         when(servicoRepository.findAllById(List.of(10L))).thenReturn(List.of(servico));
 
         var response = profissionalService.editar(1L, 1L, dto, "gestor@email.com");
@@ -136,7 +136,7 @@ class ProfissionalServiceTest {
         profissional.setEstabelecimento(estabelecimento);
         profissional.setServicos(List.of(servico));
 
-        when(profissionalRepository.findByEstabelecimentoIdAndServicosId(1L, 10L))
+        when(profissionalRepository.findByEstabelecimentoIdAndServicosIdAndAtivoTrue(1L, 10L))
                 .thenReturn(List.of(profissional));
 
         var response = profissionalService.listarPorServicoPublico(1L, 10L);
@@ -144,5 +144,25 @@ class ProfissionalServiceTest {
         assertEquals(1, response.size());
         assertEquals("Lucas", response.get(0).nome());
         verifyNoInteractions(authorizationService); 
+    }
+
+    @Test
+    void desativar_deveDesativarProfissional() {
+        var estabelecimento = new Estabelecimento();
+        estabelecimento.setId(1L);
+
+        var profissional = new Profissional();
+        profissional.setId(1L);
+        profissional.setAtivo(true);
+        profissional.setEstabelecimento(estabelecimento);
+
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L))
+                .thenReturn(Optional.of(profissional));
+
+        profissionalService.desativar(1L, 1L, "gestor@email.com");
+
+        assertFalse(profissional.isAtivo());
+        verify(authorizationService).validarAcesso("gestor@email.com", 1L);
+        verify(profissionalRepository, never()).delete(any()); // Garante que é soft delete
     }
 }

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProfissionalRepository extends JpaRepository<Profissional, Long> {
-    List<Profissional> findByEstabelecimentoId(Long estabelecimentoId);
-    Optional<Profissional> findByIdAndEstabelecimentoId(Long id, Long estabelecimentoId);
-    List<Profissional> findByEstabelecimentoIdAndServicosId(Long estabelecimentoId, Long servicoId);
+    List<Profissional> findByEstabelecimentoIdAndAtivoTrue(Long estabelecimentoId);
+    Optional<Profissional> findByIdAndEstabelecimentoIdAndAtivoTrue(Long id, Long estabelecimentoId);    
+    List<Profissional> findByEstabelecimentoIdAndServicosIdAndAtivoTrue(Long estabelecimentoId, Long servicoId);
 }

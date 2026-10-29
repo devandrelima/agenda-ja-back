@@ -39,7 +39,7 @@ public class AgendamentoService {
         Usuario cliente = usuarioRepository.findByEmail(emailCliente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cliente não encontrado."));
 
-        Profissional profissional = profissionalRepository.findByIdAndEstabelecimentoId(dto.profissionalId(), estabelecimentoId)
+        Profissional profissional = profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(dto.profissionalId(), estabelecimentoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado no estabelecimento."));
 
         Servico servico = servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(dto.servicoId(), estabelecimentoId)
