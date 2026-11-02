@@ -46,7 +46,7 @@ public class ConfiguracaoEstabelecimentoService {
 
     @Transactional
     public void salvarCapa(Long id, String email, String imagemUrl) {
-        if (imagemUrl == null || !imagemUrl.startsWith("data:image/jpeg;base64,") || imagemUrl.length() > 3_000_000)
+        if (imagemUrl != null && (!imagemUrl.startsWith("data:image/jpeg;base64,") || imagemUrl.length() > 3_000_000))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Imagem de capa inválida.");
         autorizado(id, email).setImagemUrl(imagemUrl);
     }
