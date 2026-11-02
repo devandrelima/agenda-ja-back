@@ -38,6 +38,29 @@ pipeline {
       }
     }
 
+    stage('Análise estática') {
+      steps {
+        writeFile file: 'jenkins-pmd-rules.xml', text: '''<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Qualidade Agenda Já" xmlns="http://pmd.sourceforge.net/ruleset/2.0.0">
+  <description>Regras de acoplamento, tamanho e complexidade para visualização no Jenkins.</description>
+  <rule ref="category/java/design.xml/CouplingBetweenObjects">
+    <properties><property name="threshold" value="10"/></properties>
+  </rule>
+  <rule ref="category/java/design.xml/GodClass"/>
+  <rule ref="category/java/design.xml/CognitiveComplexity"/>
+</ruleset>'''
+        sh '''
+          JENKINS_CONTAINER="$(docker inspect --format '{{.Id}}' "$(hostname)" 2>/dev/null || docker ps -q --filter "volume=/var/jenkins_home" | head -n 1)"
+          docker run --rm --network host --volumes-from "${JENKINS_CONTAINER}" \
+            -w "${WORKSPACE}" eclipse-temurin:21-jdk \
+            sh -c "./mvnw checkstyle:checkstyle -B -Dmaven.repo.local=/var/jenkins_home/.m2/repository"
+          docker run --rm --volumes-from "${JENKINS_CONTAINER}" \
+            -w "${WORKSPACE}" pmdcode/pmd:7.17.0 \
+            check -d src/main/java -R jenkins-pmd-rules.xml -f xml -r target/pmd-design.xml --no-fail-on-violation
+        '''
+      }
+    }
+
     stage('Imagem de produção') {
       steps {
         sh 'docker build --label "com.agenda-ja.managed-by=jenkins" --tag "${IMAGE_NAME}:${BUILD_NUMBER}" --tag "${IMAGE_NAME}:latest" .'
@@ -97,6 +120,12 @@ pipeline {
         cp target/*.jar "build-artifacts/${BUILD_NUMBER}/" 2>/dev/null || true
       '''
       junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
+      recordIssues enabledForFailure: true, skipPublishingChecks: true,
+        tool: checkStyle(pattern: 'target/checkstyle-result.xml'),
+        sourceCodeEncoding: 'UTF-8'
+      recordIssues enabledForFailure: true, skipPublishingChecks: true,
+        tool: pmdParser(pattern: 'target/pmd-design.xml'),
+        sourceCodeEncoding: 'UTF-8'
       archiveArtifacts artifacts: "build-artifacts/${env.BUILD_NUMBER}/**", allowEmptyArchive: true
       recordCoverage tools: [[parser: 'JACOCO', pattern: 'target/site/jacoco/jacoco.xml']]
       publishHTML(target: [
