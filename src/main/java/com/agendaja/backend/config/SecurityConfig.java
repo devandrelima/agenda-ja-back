@@ -62,6 +62,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("GESTOR")
                 .requestMatchers(HttpMethod.POST, "/api/clientes").permitAll()
                 .requestMatchers(
+                        "/api/clientes/me/agendamentos",
+                        "/api/clientes/me/agendamentos/**"
+                ).hasRole("CLIENTE")
+                .requestMatchers(
                         HttpMethod.POST,
                         "/api/estabelecimentos/*/avaliacoes"
                 ).hasRole("CLIENTE")
