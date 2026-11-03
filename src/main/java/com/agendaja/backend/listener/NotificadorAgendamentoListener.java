@@ -1,6 +1,8 @@
 package com.agendaja.backend.listener;
 
 import com.agendaja.backend.event.AgendamentoCriadoEvent;
+import com.agendaja.backend.event.AgendamentoStatusAlteradoEvent;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,6 +22,16 @@ public class NotificadorAgendamentoListener {
         log.info(
             "OBSERVER ACIONADO: Disparando notificações para o agendamento {} do cliente {}", 
             event.agendamento().getId(), 
+            event.agendamento().getCliente().getNome()
+        );
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onStatusAlterado(AgendamentoStatusAlteradoEvent event) {
+        log.info("OBSERVER ACIONADO: Status do agendamento {} alterado de {} para {} (Cliente: {})", 
+            event.agendamento().getId(), 
+            event.statusAnterior(), 
+            event.agendamento().getStatus(),
             event.agendamento().getCliente().getNome()
         );
     }
