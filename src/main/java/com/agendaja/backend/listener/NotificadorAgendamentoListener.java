@@ -1,6 +1,7 @@
 package com.agendaja.backend.listener;
 
 import com.agendaja.backend.event.AgendamentoCriadoEvent;
+import com.agendaja.backend.event.AgendamentoReagendadoEvent;
 import com.agendaja.backend.event.AgendamentoStatusAlteradoEvent;
 
 import org.slf4j.Logger;
@@ -32,6 +33,16 @@ public class NotificadorAgendamentoListener {
             event.agendamento().getId(), 
             event.statusAnterior(), 
             event.agendamento().getStatus(),
+            event.agendamento().getCliente().getNome()
+        );
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onAgendamentoReagendado(AgendamentoReagendadoEvent event) {
+        log.info("OBSERVER ACIONADO: Agendamento {} reagendado de {} para {} (Cliente: {})", 
+            event.agendamento().getId(), 
+            event.dataHoraInicioAnterior(), 
+            event.agendamento().getDataHoraInicio(),
             event.agendamento().getCliente().getNome()
         );
     }
