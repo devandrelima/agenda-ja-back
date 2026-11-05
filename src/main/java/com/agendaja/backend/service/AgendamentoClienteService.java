@@ -117,4 +117,43 @@ public class AgendamentoClienteService {
 
 		return usuario;
 	}
+
+	@Transactional
+	public AgendamentoClienteDTO cancelar(
+			Long agendamentoId,
+			String emailAutenticado
+	) {
+		var cliente = buscarCliente(emailAutenticado);
+
+		int alterados = agendamentoRepository.cancelarSePermitido(
+				agendamentoId,
+				cliente.getId(),
+				List.of(
+						StatusAgendamento.AGUARDANDO_CONFIRMACAO,
+						StatusAgendamento.CONFIRMADO
+				),
+				StatusAgendamento.CANCELADO
+		);
+
+		if (alterados == 0) {
+			// Retorna 404 se não existir ou pertencer a outro cliente.
+			buscarAgendamentoDoCliente(
+					agendamentoId,
+					cliente.getId()
+			);
+
+			// Se existe e pertence ao cliente, o status é inválido.
+			throw new ResponseStatusException(
+					HttpStatus.CONFLICT,
+					"Este agendamento não pode mais ser cancelado."
+			);
+		}
+
+		return AgendamentoClienteDTO.from(
+				buscarAgendamentoDoCliente(
+						agendamentoId,
+						cliente.getId()
+				)
+		);
+	}
 }

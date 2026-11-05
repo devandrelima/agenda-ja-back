@@ -125,6 +125,51 @@ public class AgendamentoClienteController {
 		);
 	}
 
+	@Operation(
+			summary = "Cancelar meu agendamento",
+			description = """
+        Cancela uma reserva pertencente ao cliente autenticado.
+
+        Permite cancelar reservas pendentes ou confirmadas.
+        Não permite cancelar reservas concluídas ou canceladas.
+
+        Exige sessão CLIENTE e token CSRF válido.
+        """
+	)
+	@ApiResponses({
+			@ApiResponse(
+					responseCode = "200",
+					description = "Agendamento cancelado"
+			),
+			@ApiResponse(
+					responseCode = "401",
+					description = "Cliente não autenticado"
+			),
+			@ApiResponse(
+					responseCode = "403",
+					description = "Acesso negado ou CSRF inválido"
+			),
+			@ApiResponse(
+					responseCode = "404",
+					description = "Agendamento não encontrado"
+			),
+			@ApiResponse(
+					responseCode = "409",
+					description = "Agendamento não pode ser cancelado"
+			)
+	})
+	@PostMapping("/{agendamentoId}/cancelamento")
+	public AgendamentoClienteDTO cancelar(
+			@PathVariable Long agendamentoId,
+			Authentication authentication
+	) {
+		return service.cancelar(
+				agendamentoId,
+				authentication.getName()
+		);
+	}
+
+
 	@ExceptionHandler(ResponseStatusException.class)
 	public ResponseEntity<Map<String, String>> tratarErro(
 			ResponseStatusException exception

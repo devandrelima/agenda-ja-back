@@ -68,4 +68,23 @@ public interface AgendamentoRepository
             @Param("fimDia") LocalDateTime fimDia,
             @Param("statusCancelado") StatusAgendamento statusCancelado
     );
+
+    @Modifying(
+            flushAutomatically = true,
+            clearAutomatically = true
+    )
+    @Query("""
+        UPDATE Agendamento a
+        SET a.status = :cancelado
+        WHERE a.id = :agendamentoId
+          AND a.cliente.id = :clienteId
+          AND a.status IN :statusPermitidos
+    """)
+    int cancelarSePermitido(
+            @Param("agendamentoId") Long agendamentoId,
+            @Param("clienteId") Long clienteId,
+            @Param("statusPermitidos") List<StatusAgendamento> statusPermitidos,
+            @Param("cancelado") StatusAgendamento cancelado
+    );
+
 }
