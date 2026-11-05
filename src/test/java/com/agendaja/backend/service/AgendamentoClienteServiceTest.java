@@ -199,4 +199,117 @@ class AgendamentoClienteServiceTest {
 
 		verifyNoInteractions(agendamentoRepository);
 	}
+
+	@Test
+	void deveCancelarAgendamentoPendente() {
+		when(usuarioRepository.findByEmail(email))
+				.thenReturn(Optional.of(cliente));
+
+		when(agendamentoRepository.cancelarSePermitido(
+				eq(4L),
+				eq(10L),
+				anyList(),
+				eq(StatusAgendamento.CANCELADO)
+		)).thenAnswer(invocation -> {
+			agendamento.setStatus(StatusAgendamento.CANCELADO);
+			return 1;
+		});
+
+		when(agendamentoRepository.findByIdAndClienteId(4L, 10L))
+				.thenReturn(Optional.of(agendamento));
+
+		var resposta = service.cancelar(4L, email);
+
+		assertEquals("CANCELADO", resposta.status());
+
+		verify(agendamentoRepository).cancelarSePermitido(
+				4L,
+				10L,
+				List.of(
+						StatusAgendamento.AGUARDANDO_CONFIRMACAO,
+						StatusAgendamento.CONFIRMADO
+				),
+				StatusAgendamento.CANCELADO
+		);
+	}
+
+	@Test
+	void deveCancelarAgendamentoConfirmado() {
+		agendamento.setStatus(StatusAgendamento.CONFIRMADO);
+
+		when(usuarioRepository.findByEmail(email))
+				.thenReturn(Optional.of(cliente));
+
+		when(agendamentoRepository.cancelarSePermitido(
+				eq(4L),
+				eq(10L),
+				anyList(),
+				eq(StatusAgendamento.CANCELADO)
+		)).thenAnswer(invocation -> {
+			agendamento.setStatus(StatusAgendamento.CANCELADO);
+			return 1;
+		});
+
+		when(agendamentoRepository.findByIdAndClienteId(4L, 10L))
+				.thenReturn(Optional.of(agendamento));
+
+		var resposta = service.cancelar(4L, email);
+
+		assertEquals("CANCELADO", resposta.status());
+	}
+
+	@Test
+	void deveRejeitarCancelamentoDeAgendamentoJaCancelado() {
+		agendamento.setStatus(StatusAgendamento.CANCELADO);
+
+		when(usuarioRepository.findByEmail(email))
+				.thenReturn(Optional.of(cliente));
+
+		when(agendamentoRepository.findByIdAndClienteId(4L, 10L))
+				.thenReturn(Optional.of(agendamento));
+
+		var excecao = assertThrows(
+				ResponseStatusException.class,
+				() -> service.cancelar(4L, email)
+		);
+
+		assertEquals(409, excecao.getStatusCode().value());
+	}
+
+	@Test
+	void deveRejeitarCancelamentoDeAgendamentoConcluido() {
+		agendamento.setStatus(StatusAgendamento.CONCLUIDO);
+
+		when(usuarioRepository.findByEmail(email))
+				.thenReturn(Optional.of(cliente));
+
+		when(agendamentoRepository.findByIdAndClienteId(4L, 10L))
+				.thenReturn(Optional.of(agendamento));
+
+		var excecao = assertThrows(
+				ResponseStatusException.class,
+				() -> service.cancelar(4L, email)
+		);
+
+		assertEquals(409, excecao.getStatusCode().value());
+	}
+
+	@Test
+	void deveImpedirCancelamentoDeOutroCliente() {
+		when(usuarioRepository.findByEmail(email))
+				.thenReturn(Optional.of(cliente));
+
+		when(agendamentoRepository.findByIdAndClienteId(4L, 10L))
+				.thenReturn(Optional.empty());
+
+		var excecao = assertThrows(
+				ResponseStatusException.class,
+				() -> service.cancelar(4L, email)
+		);
+
+		assertEquals(404, excecao.getStatusCode().value());
+
+		verify(agendamentoRepository, never())
+				.delete(any(Agendamento.class));
+	}
 }

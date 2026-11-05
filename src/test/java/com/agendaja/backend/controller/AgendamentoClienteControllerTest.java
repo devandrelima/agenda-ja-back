@@ -2,6 +2,7 @@ package com.agendaja.backend.controller;
 
 import com.agendaja.backend.config.SecurityConfig;
 import com.agendaja.backend.service.AgendamentoClienteService;
+import com.agendaja.backend.service.AgendamentoReagendamentoService;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +30,9 @@ class AgendamentoClienteControllerTest {
 
 	@MockitoBean
 	AgendamentoClienteService service;
+
+	@MockitoBean
+	private AgendamentoReagendamentoService reagendamentoService;
 
 	@Test
 	void devePermitirConsultaAoCliente() throws Exception {
