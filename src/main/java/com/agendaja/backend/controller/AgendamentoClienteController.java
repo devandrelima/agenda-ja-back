@@ -2,6 +2,11 @@ package com.agendaja.backend.controller;
 
 import com.agendaja.backend.dto.AgendamentoClienteDTO;
 import com.agendaja.backend.service.AgendamentoClienteService;
+import com.agendaja.backend.dto.AgendamentoReagendamentoRequestDTO;
+import com.agendaja.backend.service.AgendamentoReagendamentoService;
+
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -28,6 +33,7 @@ import java.util.Map;
 public class AgendamentoClienteController {
 
 	private final AgendamentoClienteService service;
+	private final AgendamentoReagendamentoService reagendamentoService;
 
 	@Operation(
 			summary = "Listar meus agendamentos",
@@ -165,6 +171,58 @@ public class AgendamentoClienteController {
 	) {
 		return service.cancelar(
 				agendamentoId,
+				authentication.getName()
+		);
+	}
+
+	@Operation(
+			summary = "Reagendar minha reserva",
+			description = """
+        Reagenda uma reserva pertencente ao cliente autenticado.
+
+        A operação cria uma nova reserva e cancela a anterior
+        atomicamente. Se houver erro, a reserva original
+        permanece inalterada.
+
+        Exige sessão CLIENTE e token CSRF válido.
+        """
+	)
+	@ApiResponses({
+			@ApiResponse(
+					responseCode = "201",
+					description = "Agendamento reagendado com sucesso"
+			),
+			@ApiResponse(
+					responseCode = "400",
+					description = "Dados inválidos"
+			),
+			@ApiResponse(
+					responseCode = "401",
+					description = "Cliente não autenticado"
+			),
+			@ApiResponse(
+					responseCode = "403",
+					description = "Acesso negado ou CSRF inválido"
+			),
+			@ApiResponse(
+					responseCode = "404",
+					description = "Agendamento ou recurso não encontrado"
+			),
+			@ApiResponse(
+					responseCode = "409",
+					description = "Reserva indisponível ou status incompatível"
+			)
+	})
+	@PostMapping("/{agendamentoId}/reagendamento")
+	@ResponseStatus(HttpStatus.CREATED)
+	public AgendamentoClienteDTO reagendar(
+			@PathVariable Long agendamentoId,
+			@RequestBody @Valid AgendamentoReagendamentoRequestDTO dto,
+			Authentication authentication
+	) {
+		return reagendamentoService.reagendar(
+				agendamentoId,
+				dto,
 				authentication.getName()
 		);
 	}
