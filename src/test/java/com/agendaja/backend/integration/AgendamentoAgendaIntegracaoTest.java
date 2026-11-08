@@ -40,6 +40,10 @@ class AgendamentoAgendaIntegracaoTest {
     private Long idAgendamentoHojeProg2;
     private Long idAgendamentoAmanha;
 
+    // Constantes de tempo fixas para evitar o "bug da meia-noite" nos pipelines de CI (Jenkins)
+    private final LocalDate DATA_TESTE = LocalDate.of(2026, 11, 10);
+    private final LocalDateTime HORA_BASE = DATA_TESTE.atTime(12, 0);
+
     @BeforeEach
     void setup() {
         agendamentoRepository.deleteAll();
@@ -72,20 +76,20 @@ class AgendamentoAgendaIntegracaoTest {
         prof2 = profissionalRepository.saveAndFlush(prof2);
         prof2.getId();
 
-        // Agendamento Ontem (Profissional 1)
-        var agendamento1 = criarAgendamento(cliente, prof1, servico, LocalDateTime.now().minusDays(1));
+        // Agendamento "Ontem" 
+        var agendamento1 = criarAgendamento(cliente, prof1, servico, HORA_BASE.minusDays(1));
         agendamento1.getId();
 
-        // Agendamento Hoje (Profissional 1)
-        var agendamento2 = criarAgendamento(cliente, prof1, servico, LocalDateTime.now());
+        // Agendamento "Hoje" (Profissional 1)
+        var agendamento2 = criarAgendamento(cliente, prof1, servico, HORA_BASE);
         idAgendamentoHojeProg1 = agendamento2.getId();
 
-        // Agendamento Hoje (Profissional 2)
-        var agendamento3 = criarAgendamento(cliente, prof2, servico, LocalDateTime.now().plusHours(1));
+        // Agendamento "Hoje" (Profissional 2)
+        var agendamento3 = criarAgendamento(cliente, prof2, servico, HORA_BASE.plusHours(1));
         idAgendamentoHojeProg2 = agendamento3.getId();
 
-        // Agendamento Amanhã (Profissional 1)
-        var agendamento4 = criarAgendamento(cliente, prof1, servico, LocalDateTime.now().plusDays(1));
+        // Agendamento "Amanhã" 
+        var agendamento4 = criarAgendamento(cliente, prof1, servico, HORA_BASE.plusDays(1));
         idAgendamentoAmanha = agendamento4.getId();
     }
 
@@ -102,23 +106,22 @@ class AgendamentoAgendaIntegracaoTest {
 
     @Test
     void deveFiltrarAgendamentosPorPeriodo() {
-        // Busca apenas os agendamentos de HOJE
-        LocalDateTime inicioHoje = LocalDate.now().atStartOfDay();
-        LocalDateTime fimHoje = LocalDate.now().atTime(LocalTime.MAX);
+        // Busca apenas os agendamentos da data fixa
+        LocalDateTime inicioHoje = DATA_TESTE.atStartOfDay();
+        LocalDateTime fimHoje = DATA_TESTE.atTime(LocalTime.MAX);
 
         var resultados = gestorService.listarAgenda(
                 estabelecimentoId, inicioHoje, fimHoje, null, null, null, emailGestor);
 
-        assertEquals(2, resultados.size()); // Apenas os 2 de hoje
+        assertEquals(2, resultados.size()); // Apenas os 2 de "hoje"
         assertTrue(resultados.stream().anyMatch(dto -> dto.id().equals(idAgendamentoHojeProg1)));
         assertTrue(resultados.stream().anyMatch(dto -> dto.id().equals(idAgendamentoHojeProg2)));
     }
 
     @Test
     void deveFiltrarAgendamentosPorProfissional() {
-        // Busca apenas os agendamentos de HOJE, mas APENAS do Profissional 1
-        LocalDateTime inicioHoje = LocalDate.now().atStartOfDay();
-        LocalDateTime fimHoje = LocalDate.now().atTime(LocalTime.MAX);
+        LocalDateTime inicioHoje = DATA_TESTE.atStartOfDay();
+        LocalDateTime fimHoje = DATA_TESTE.atTime(LocalTime.MAX);
 
         var resultados = gestorService.listarAgenda(
                 estabelecimentoId, inicioHoje, fimHoje, profissional1Id, null, null, emailGestor);
@@ -129,7 +132,7 @@ class AgendamentoAgendaIntegracaoTest {
 
     @Test
     void deveRetornarApenasAgendamentosAtualizadosParaSincronizacaoIncremental() throws InterruptedException {
-        // Simula o tempo a passar (100 milissegundos) para garantir diferença no timestamp
+        // O campo atualizadoEm usa LocalDateTime.now() do banco na vida real, então o polling dinâmico continua funcionando no teste
         Thread.sleep(100);
         LocalDateTime momentoDoPolling = LocalDateTime.now();
         Thread.sleep(100);
@@ -138,8 +141,8 @@ class AgendamentoAgendaIntegracaoTest {
         gestorService.alterarStatus(estabelecimentoId, idAgendamentoAmanha, StatusAgendamento.CANCELADO, emailGestor);
 
         // O Frontend faz o Polling enviando a data/hora da última vez que perguntou
-        LocalDateTime inicioAmplo = LocalDateTime.now().minusDays(5);
-        LocalDateTime fimAmplo = LocalDateTime.now().plusDays(5);
+        LocalDateTime inicioAmplo = HORA_BASE.minusDays(5);
+        LocalDateTime fimAmplo = HORA_BASE.plusDays(5);
 
         var resultados = gestorService.listarAgenda(
                 estabelecimentoId, inicioAmplo, fimAmplo, null, null, momentoDoPolling, emailGestor);
