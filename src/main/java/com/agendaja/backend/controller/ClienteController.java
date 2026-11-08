@@ -89,4 +89,21 @@ public class ClienteController {
     ) {
         return clienteService.atualizarPerfil(dto, authentication.getName());
     }
+
+
+	@Operation(
+            summary = "Desativar minha conta",
+            description = "Realiza exclusão lógica da conta do cliente e cancela automaticamente todas as suas reservas futuras. Exige token CSRF."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Conta desativada com sucesso"),
+            @ApiResponse(responseCode = "401", description = "Cliente não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Token CSRF inválido ou acesso negado")
+    })
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void desativarConta(Authentication authentication)
+	{
+        clienteService.desativarConta(authentication.getName());
+    }
 }

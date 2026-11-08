@@ -106,4 +106,19 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("statusList") List<StatusAgendamento> statusList,
             @Param("atualizadoApos") LocalDateTime atualizadoApos
     );
+
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        UPDATE Agendamento a
+        SET a.status = :cancelado
+        WHERE a.cliente.id = :clienteId
+          AND a.dataHoraInicio > CURRENT_TIMESTAMP
+          AND a.status IN :statusPermitidos
+    """)
+    int cancelarAgendamentosFuturosDoCliente(
+            @Param("clienteId") Long clienteId,
+            @Param("statusPermitidos") List<StatusAgendamento> statusPermitidos,
+            @Param("cancelado") StatusAgendamento cancelado
+    );
 }

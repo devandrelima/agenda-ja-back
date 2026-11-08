@@ -5,8 +5,12 @@ import com.agendaja.backend.dto.ClienteCadastroDTO;
 import com.agendaja.backend.dto.ClienteResponseDTO;
 import com.agendaja.backend.exception.EmailJaCadastradoException;
 import com.agendaja.backend.model.Usuario;
+import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,7 +21,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class ClienteService {
 	private final UsuarioRepository usuarioRepository;
-	private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final AgendamentoRepository agendamentoRepository;
 
 	@Transactional
 	public ClienteResponseDTO cadastrar(ClienteCadastroDTO dto)
@@ -76,5 +81,25 @@ public class ClienteService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas clientes podem gerenciar seu próprio perfil.");
 
         return usuario;
+    }
+
+
+    @Transactional
+    public void desativarConta(String emailAutenticado)
+    {
+        Usuario cliente = buscarClientePorEmail(emailAutenticado);
+        
+        // Inativação lógica do cliente
+        cliente.setAtivo(false);
+        
+        // Cancelamento em massa das reservas futuras (liberta a agenda dos profissionais)
+        agendamentoRepository.cancelarAgendamentosFuturosDoCliente(
+                cliente.getId(),
+                List.of(
+                        com.agendaja.backend.model.StatusAgendamento.AGUARDANDO_CONFIRMACAO, 
+                        com.agendaja.backend.model.StatusAgendamento.CONFIRMADO
+                ),
+                com.agendaja.backend.model.StatusAgendamento.CANCELADO
+        );
     }
 }

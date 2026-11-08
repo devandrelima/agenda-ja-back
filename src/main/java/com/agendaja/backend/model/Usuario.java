@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Setter
 @NoArgsConstructor
 public class Usuario {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,6 +30,9 @@ public class Usuario {
 
     @Column(length = 20)
     private String telefone;
+
+    @Column(nullable = false)
+    private boolean ativo = true;
 
     public Usuario(
             Long id,

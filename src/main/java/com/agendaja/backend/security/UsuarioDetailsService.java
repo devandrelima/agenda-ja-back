@@ -1,43 +1,31 @@
-
 package com.agendaja.backend.security;
 
 import com.agendaja.backend.repository.UsuarioRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import org.springframework.stereotype.Service;
-
 import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 public class UsuarioDetailsService implements UserDetailsService {
-
 	private final UsuarioRepository usuarioRepository;
 
 	@Override
-	public UserDetails loadUserByUsername(String identificador)
-			throws UsernameNotFoundException {
-
+	public UserDetails loadUserByUsername(String identificador) throws UsernameNotFoundException
+	{
 		String entrada = identificador.strip();
 
 		var usuario = (entrada.contains("@")
-				? usuarioRepository.findByEmail(
-						entrada.toLowerCase(Locale.ROOT)
-				)
-				: usuarioRepository.findByTelefone(
-						entrada.replaceAll("\\D", "")
-				))
-				.orElseThrow(() ->
-						new UsernameNotFoundException(
-								"Usuário não encontrado"
-						)
-				);
+				? usuarioRepository.findByEmail(entrada.toLowerCase(Locale.ROOT))
+				: usuarioRepository.findByTelefone(entrada.replaceAll("\\D", "")))
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+
+		// Bloqueia o acesso se a conta estiver inativa
+        if (!usuario.isAtivo()) throw new UsernameNotFoundException("Esta conta foi desativada.");
 
 		return User.builder()
 				.username(usuario.getEmail())
