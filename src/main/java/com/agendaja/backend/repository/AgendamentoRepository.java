@@ -2,20 +2,16 @@ package com.agendaja.backend.repository;
 
 import com.agendaja.backend.model.Agendamento;
 import com.agendaja.backend.model.StatusAgendamento;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface AgendamentoRepository
-        extends JpaRepository<Agendamento, Long> {
-
+public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
     @EntityGraph(attributePaths = {
             "servico",
             "profissional",
@@ -87,4 +83,27 @@ public interface AgendamentoRepository
             @Param("cancelado") StatusAgendamento cancelado
     );
 
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "servico",
+            "profissional"
+    })
+    @Query("""
+        SELECT a FROM Agendamento a
+        WHERE a.profissional.estabelecimento.id = :estabelecimentoId
+          AND a.dataHoraInicio >= :inicio
+          AND a.dataHoraInicio <= :fim
+          AND (:profissionalId IS NULL OR a.profissional.id = :profissionalId)
+          AND a.status IN :statusList
+          AND (CAST(:atualizadoApos AS timestamp) IS NULL OR a.atualizadoEm > :atualizadoApos)
+        ORDER BY a.dataHoraInicio ASC
+    """)
+    List<Agendamento> buscarAgendaAdministrativa(
+            @Param("estabelecimentoId") Long estabelecimentoId,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fim") LocalDateTime fim,
+            @Param("profissionalId") Long profissionalId,
+            @Param("statusList") List<StatusAgendamento> statusList,
+            @Param("atualizadoApos") LocalDateTime atualizadoApos
+    );
 }

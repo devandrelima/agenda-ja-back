@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.ConcurrencyFailureException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -79,5 +80,24 @@ public class AgendamentoGestorService {
 
         // Dispara o evento de notificação de forma totalmente desacoplada
         eventPublisher.publishEvent(new AgendamentoReagendadoEvent(agendamento, inicioAnterior, fimAnterior));
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.agendaja.backend.dto.AgendamentoAgendaDTO> listarAgenda(Long estabelecimentoId, LocalDateTime inicio, LocalDateTime fim, Long profissionalId, List<StatusAgendamento> statusList, LocalDateTime atualizadoApos, String emailGestor
+    )
+    {
+        authorizationService.validarAcesso(emailGestor, estabelecimentoId);
+
+        // Se o frontend não enviar filtros de status específicos, retorna todos por default
+        if (statusList == null || statusList.isEmpty()) statusList = List.of(StatusAgendamento.values());
+
+        return agendamentoRepository.buscarAgendaAdministrativa(
+                estabelecimentoId,
+                inicio,
+                fim,
+                profissionalId,
+                statusList,
+                atualizadoApos
+        ).stream().map(com.agendaja.backend.dto.AgendamentoAgendaDTO::from).toList();
     }
 }
