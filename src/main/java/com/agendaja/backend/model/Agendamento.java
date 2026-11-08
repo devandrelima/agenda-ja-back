@@ -41,4 +41,24 @@ public class Agendamento {
     private StatusAgendamento status;
 
     private String observacoes;
+
+    @Column(name = "criado_em", nullable = false, updatable = false)
+    private LocalDateTime criadoEm;
+
+    @Column(name = "atualizado_em", nullable = false)
+    private LocalDateTime atualizadoEm;
+
+    @PrePersist
+    private void antesDeInserir()
+    {
+        LocalDateTime agora = LocalDateTime.now();
+        if (criadoEm == null) criadoEm = agora;
+        atualizadoEm = agora;
+    }
+
+    @PreUpdate
+    private void antesDeAtualizar()
+    {
+        atualizadoEm = LocalDateTime.now();
+    }
 }
