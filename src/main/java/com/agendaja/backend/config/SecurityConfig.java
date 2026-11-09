@@ -53,6 +53,8 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/api/auth/login",
                         "/api/auth/csrf",
+                        "/api/auth/senha/solicitar-recuperacao",
+                        "/api/auth/senha/redefinir",
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/v3/api-docs/**"
