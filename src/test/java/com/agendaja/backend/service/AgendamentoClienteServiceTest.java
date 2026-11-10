@@ -27,6 +27,9 @@ import static org.mockito.Mockito.*;
 class AgendamentoClienteServiceTest {
 
 	@Mock
+	private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
+
+	@Mock
 	AgendamentoRepository agendamentoRepository;
 
 	@Mock
