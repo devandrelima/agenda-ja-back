@@ -51,7 +51,8 @@ class ClienteControllerTest {
 						1L,
 						"Maria Silva",
 						"84999999999",
-						"maria@email.com"
+						"maria@email.com",
+						null
 				));
 
 		mockMvc.perform(post(URL)

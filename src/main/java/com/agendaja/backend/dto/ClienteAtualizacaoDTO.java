@@ -21,7 +21,10 @@ public record ClienteAtualizacaoDTO(
         @NotBlank(message = "O e-mail é obrigatório")
         @Email(message = "Formato de e-mail inválido")
         @Size(max = 100, message = "O e-mail deve ter no máximo 100 caracteres")
-        String email
+        String email,
+
+        @Size(max = 2_000_000, message = "A foto deve ter no máximo 2 MB")
+        String fotoUrl
 ) {
     public ClienteAtualizacaoDTO
     {

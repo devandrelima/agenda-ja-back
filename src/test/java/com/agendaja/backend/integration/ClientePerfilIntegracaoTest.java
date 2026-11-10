@@ -89,7 +89,7 @@ class ClientePerfilIntegracaoTest {
 
     @Test
     void deveAtualizarDadosDoPerfilComSucesso() {
-        var dto = new ClienteAtualizacaoDTO("Novo Nome", "(84) 9 8888-7777", "  NOVO@email.com  ");
+        var dto = new ClienteAtualizacaoDTO("Novo Nome", "(84) 9 8888-7777", "  NOVO@email.com  ", null);
         
         var resposta = clienteService.atualizarPerfil(dto, clienteAlvo.getEmail());
 
@@ -104,7 +104,7 @@ class ClientePerfilIntegracaoTest {
     @Test
     void deveImpedirAtualizacaoParaEmailJaExistente() {
         // Tenta usar o e-mail que já pertence ao "Outro Cliente"
-        var dto = new ClienteAtualizacaoDTO("Novo Nome", "84988887777", outroCliente.getEmail());
+        var dto = new ClienteAtualizacaoDTO("Novo Nome", "84988887777", outroCliente.getEmail(), null);
 
         var erro = assertThrows(EmailJaCadastradoException.class, () -> 
             clienteService.atualizarPerfil(dto, clienteAlvo.getEmail())

@@ -67,6 +67,7 @@ public class ClienteService {
 
         cliente.setNome(dto.nome());
         cliente.setTelefone(dto.telefone());
+        cliente.setFotoUrl(dto.fotoUrl());
 
         // A transação JPA cuidará de sincronizar a entidade com o banco via Dirty Checking (flush)
         return ClienteResponseDTO.from(cliente);
