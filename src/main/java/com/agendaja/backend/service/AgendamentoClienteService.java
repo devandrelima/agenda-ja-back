@@ -1,13 +1,13 @@
 package com.agendaja.backend.service;
 
 import com.agendaja.backend.dto.AgendamentoClienteDTO;
+import com.agendaja.backend.event.AgendamentoStatusAlteradoEvent;
 import com.agendaja.backend.model.StatusAgendamento;
 import com.agendaja.backend.model.Usuario;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
-
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +21,9 @@ public class AgendamentoClienteService {
 
 	private final AgendamentoRepository agendamentoRepository;
 	private final UsuarioRepository usuarioRepository;
+
+	// Injeção do publicador de eventos
+	private final ApplicationEventPublisher applicationEventPublisher;
 
 	@Transactional(readOnly = true)
 	public List<AgendamentoClienteDTO> listar(
@@ -67,37 +70,47 @@ public class AgendamentoClienteService {
 		);
 
 		if (alterados == 0) {
-			// Não revelar uma reserva de outro usuário.
-			buscarAgendamentoDoCliente(
-					agendamentoId,
-					cliente.getId()
-			);
-
-			throw new ResponseStatusException(
-					HttpStatus.CONFLICT,
-					"A reserva não está aguardando confirmação."
-			);
+			buscarAgendamentoDoCliente(agendamentoId, cliente.getId());
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "A reserva não está aguardando confirmação.");
 		}
 
-		return AgendamentoClienteDTO.from(
-				buscarAgendamentoDoCliente(
-						agendamentoId,
-						cliente.getId()
-				)
+		var agendamentoAtualizado = buscarAgendamentoDoCliente(agendamentoId, cliente.getId());
+
+		// CORREÇÃO: Atualizando manualmente o status na memória do Hibernate
+		agendamentoAtualizado.setStatus(StatusAgendamento.CONFIRMADO);
+
+		applicationEventPublisher.publishEvent(
+				new AgendamentoStatusAlteradoEvent(agendamentoAtualizado, StatusAgendamento.AGUARDANDO_CONFIRMACAO)
 		);
+
+		return AgendamentoClienteDTO.from(agendamentoAtualizado);
 	}
 
-	private com.agendaja.backend.model.Agendamento
-	buscarAgendamentoDoCliente(
+	private com.agendaja.backend.model.Agendamento buscarAgendamentoDoCliente(
 			Long id,
 			Long clienteId
 	) {
-		return agendamentoRepository
+		var agendamento = agendamentoRepository
 				.findByIdAndClienteId(id, clienteId)
 				.orElseThrow(() -> new ResponseStatusException(
 						HttpStatus.NOT_FOUND,
 						"Agendamento não encontrado."
 				));
+
+		// CORREÇÃO: "Toca" nos atributos para forçar o Hibernate a carregar os dados (Lazy Loading)
+		// para a memória ANTES da transação acabar. Isso salva a vida do nosso Observer assíncrono
+		if (agendamento.getCliente() != null) {
+			agendamento.getCliente().getNome();
+			agendamento.getCliente().getEmail();
+		}
+		if (agendamento.getServico() != null) {
+			agendamento.getServico().getNome();
+		}
+		if (agendamento.getProfissional() != null) {
+			agendamento.getProfissional().getNome();
+		}
+
+		return agendamento;
 	}
 
 	private Usuario buscarCliente(String emailAutenticado) {
@@ -125,35 +138,29 @@ public class AgendamentoClienteService {
 	) {
 		var cliente = buscarCliente(emailAutenticado);
 
+		var agendamentoExistente = buscarAgendamentoDoCliente(agendamentoId, cliente.getId());
+		StatusAgendamento statusAnterior = agendamentoExistente.getStatus();
+
 		int alterados = agendamentoRepository.cancelarSePermitido(
 				agendamentoId,
 				cliente.getId(),
-				List.of(
-						StatusAgendamento.AGUARDANDO_CONFIRMACAO,
-						StatusAgendamento.CONFIRMADO
-				),
+				List.of(StatusAgendamento.AGUARDANDO_CONFIRMACAO, StatusAgendamento.CONFIRMADO),
 				StatusAgendamento.CANCELADO
 		);
 
 		if (alterados == 0) {
-			// Retorna 404 se não existir ou pertencer a outro cliente.
-			buscarAgendamentoDoCliente(
-					agendamentoId,
-					cliente.getId()
-			);
-
-			// Se existe e pertence ao cliente, o status é inválido.
-			throw new ResponseStatusException(
-					HttpStatus.CONFLICT,
-					"Este agendamento não pode mais ser cancelado."
-			);
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Este agendamento não pode mais ser cancelado.");
 		}
 
-		return AgendamentoClienteDTO.from(
-				buscarAgendamentoDoCliente(
-						agendamentoId,
-						cliente.getId()
-				)
+		var agendamentoAtualizado = buscarAgendamentoDoCliente(agendamentoId, cliente.getId());
+
+		// CORREÇÃO: Atualizando manualmente o status na memória do Hibernate
+		agendamentoAtualizado.setStatus(StatusAgendamento.CANCELADO);
+
+		applicationEventPublisher.publishEvent(
+				new AgendamentoStatusAlteradoEvent(agendamentoAtualizado, statusAnterior)
 		);
+
+		return AgendamentoClienteDTO.from(agendamentoAtualizado);
 	}
 }
