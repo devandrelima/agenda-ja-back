@@ -23,7 +23,7 @@ public record ClienteAtualizacaoDTO(
         @Size(max = 100, message = "O e-mail deve ter no máximo 100 caracteres")
         String email,
 
-        @Size(max = 2_000_000, message = "A foto deve ter no máximo 2 MB")
+        @Size(max = 7_000_000, message = "A foto deve ter no máximo 5 MB")
         String fotoUrl
 ) {
     public ClienteAtualizacaoDTO

@@ -33,6 +33,9 @@ public class Estabelecimento {
     @Column(name = "imagem_url", columnDefinition = "text")
     private String imagemUrl;
 
+    @Column(name = "logo_url", columnDefinition = "text")
+    private String logoUrl;
+
     @Column(name = "horarios_funcionamento", columnDefinition = "text")
     private String horariosFuncionamento;
 
