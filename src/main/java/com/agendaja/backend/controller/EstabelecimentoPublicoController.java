@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import java.util.List;
 
 @Tag(
 		name = "Portal Público - Estabelecimentos",
@@ -24,6 +25,12 @@ import java.util.UUID;
 public class EstabelecimentoPublicoController {
 
 	private final EstabelecimentoPublicoService service;
+
+	@GetMapping
+	@Operation(summary = "Listar estabelecimentos disponíveis para agendamento")
+	public List<com.agendaja.backend.dto.EstabelecimentoResumoPublicoDTO> listar() {
+		return service.listar();
+	}
 
 	@Operation(
 			summary = "Consultar estabelecimento pelo identificador público",

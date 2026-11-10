@@ -31,6 +31,9 @@ public class Usuario {
     @Column(length = 20)
     private String telefone;
 
+    @Column(name = "foto_url", columnDefinition = "text")
+    private String fotoUrl;
+
     @Column(nullable = false)
     private boolean ativo = true;
 

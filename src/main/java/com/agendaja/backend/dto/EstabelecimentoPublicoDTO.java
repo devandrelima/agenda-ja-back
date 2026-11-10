@@ -11,6 +11,7 @@ public record EstabelecimentoPublicoDTO(
 		String nome,
 		String categoria,
 		String imagemUrl,
+		String logoUrl,
 		String localizacao,
 		List<HorarioFuncionamentoDTO> horariosFuncionamento
 ) {
@@ -24,6 +25,7 @@ public record EstabelecimentoPublicoDTO(
 				estabelecimento.getNome(),
 				estabelecimento.getCategoria(),
 				estabelecimento.getImagemUrl(),
+			estabelecimento.getLogoUrl(),
 				estabelecimento.getLocalizacao(),
 				horarios
 		);
