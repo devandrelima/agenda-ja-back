@@ -121,4 +121,24 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("statusPermitidos") List<StatusAgendamento> statusPermitidos,
             @Param("cancelado") StatusAgendamento cancelado
     );
+
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "servico",
+            "profissional.estabelecimento"
+    })
+    @Query("""
+        SELECT a FROM Agendamento a
+        WHERE a.dataHoraInicio >= :inicioAmanha
+          AND a.dataHoraInicio < :fimAmanha
+          AND a.status IN :statusValidos
+          AND a.lembreteEnviado = false
+        ORDER BY a.dataHoraInicio ASC
+    """)
+    List<Agendamento> buscarElegiveisParaLembrete(
+            @Param("inicioAmanha") LocalDateTime inicioAmanha,
+            @Param("fimAmanha") LocalDateTime fimAmanha,
+            @Param("statusValidos") List<StatusAgendamento> statusValidos
+    );
 }
