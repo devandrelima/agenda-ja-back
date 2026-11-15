@@ -10,16 +10,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-
 import java.time.LocalDateTime;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class EmailAdapterTest {
-
 	@Mock
 	private JavaMailSender mailSender;
 
@@ -73,4 +75,23 @@ public class EmailAdapterTest {
 
 		verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
 	}
+
+	@Test
+    void deveEnviarLembreteAgendamentoComSucesso() {
+        var estabelecimentoMock = mock(com.agendaja.backend.model.Estabelecimento.class);
+        when(estabelecimentoMock.getNome()).thenReturn("Salão Aurora");
+        when(estabelecimentoMock.getLocalizacao()).thenReturn("Centro");
+        when(agendamentoMock.getProfissional().getEstabelecimento()).thenReturn(estabelecimentoMock);
+
+        emailAdapter.enviarLembreteAgendamento(agendamentoMock);
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender, times(1)).send(captor.capture());
+
+        SimpleMailMessage mensagemEnviada = captor.getValue();
+        assertEquals("cliente@teste.com", mensagemEnviada.getTo()[0]);
+        assertEquals("Lembrete de Agendamento Amanhã - AgendaJá", mensagemEnviada.getSubject());
+        assertTrue(mensagemEnviada.getText().contains("Corte de Cabelo"));
+        assertTrue(mensagemEnviada.getText().contains("Salão Aurora"));
+    }
 }

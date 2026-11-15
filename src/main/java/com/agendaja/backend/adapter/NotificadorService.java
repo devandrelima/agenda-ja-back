@@ -6,4 +6,5 @@ public interface NotificadorService {
 	void enviarSolicitacaoAgendamento(Agendamento agendamento);
 	void enviarConfirmacaoAgendamento(Agendamento agendamento);
 	void enviarRecuperacaoSenha(String emailDestino, String token);
+	void enviarLembreteAgendamento(Agendamento agendamento);
 }
