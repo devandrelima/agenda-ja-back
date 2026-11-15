@@ -141,4 +141,40 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("fimAmanha") LocalDateTime fimAmanha,
             @Param("statusValidos") List<StatusAgendamento> statusValidos
     );
+
+
+    @Query("""
+        SELECT 
+            c.id AS clienteId, 
+            c.nome AS nome, 
+            c.telefone AS telefone, 
+            COUNT(a.id) AS totalVisitas, 
+            MAX(a.dataHoraInicio) AS ultimaVisita
+        FROM Agendamento a
+        JOIN a.cliente c
+        WHERE a.profissional.estabelecimento.id = :estabelecimentoId
+          AND a.status IN ('CONFIRMADO', 'CONCLUIDO')
+        GROUP BY c.id, c.nome, c.telefone
+        ORDER BY MAX(a.dataHoraInicio) DESC
+    """)
+    List<ClienteResumoProjection> buscarResumoClientesPorEstabelecimento(
+            @Param("estabelecimentoId") Long estabelecimentoId
+    );
+    
+
+    @EntityGraph(attributePaths = {
+            "servico",
+            "profissional"
+    })
+    @Query("""
+        SELECT a FROM Agendamento a
+        WHERE a.profissional.estabelecimento.id = :estabelecimentoId
+          AND a.cliente.id = :clienteId
+          AND a.status IN ('CONFIRMADO', 'CONCLUIDO')
+        ORDER BY a.dataHoraInicio DESC
+    """)
+    List<Agendamento> buscarHistoricoDoClienteNoEstabelecimento(
+            @Param("estabelecimentoId") Long estabelecimentoId,
+            @Param("clienteId") Long clienteId
+    );
 }
