@@ -42,6 +42,9 @@ public class Agendamento {
 
     private String observacoes;
 
+    @Column(name = "lembrete_enviado", nullable = false)
+    private boolean lembreteEnviado = false;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     private LocalDateTime criadoEm;
 
