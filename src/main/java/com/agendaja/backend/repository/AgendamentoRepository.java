@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
     @EntityGraph(attributePaths = {
@@ -177,4 +178,65 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("estabelecimentoId") Long estabelecimentoId,
             @Param("clienteId") Long clienteId
     );
+
+    @Query("""
+        SELECT
+            COUNT(a.id) AS totalReservas,
+    
+            COUNT(CASE
+                WHEN a.status = :confirmado THEN a.id
+            END) AS confirmados,
+    
+            COUNT(CASE
+                WHEN a.status = :pendente THEN a.id
+            END) AS pendentes,
+    
+            COUNT(CASE
+                WHEN a.status = :cancelado THEN a.id
+            END) AS cancelados,
+    
+            COUNT(CASE
+                WHEN a.status = :concluido THEN a.id
+            END) AS concluidos,
+    
+            COALESCE(SUM(CASE
+                WHEN a.status <> :cancelado THEN a.servico.valor
+                ELSE NULL
+            END), 0) AS faturamentoPrevisto
+    
+        FROM Agendamento a
+        WHERE a.profissional.estabelecimento.id = :estabelecimentoId
+          AND a.dataHoraInicio >= :inicioDia
+          AND a.dataHoraInicio < :fimDia
+    """)
+    DashboardAgendamentoProjection buscarResumoDashboard(
+            @Param("estabelecimentoId") Long estabelecimentoId,
+            @Param("inicioDia") LocalDateTime inicioDia,
+            @Param("fimDia") LocalDateTime fimDia,
+            @Param("confirmado") StatusAgendamento confirmado,
+            @Param("pendente") StatusAgendamento pendente,
+            @Param("cancelado") StatusAgendamento cancelado,
+            @Param("concluido") StatusAgendamento concluido
+    );
+
+    @EntityGraph(attributePaths = {
+            "cliente",
+            "servico",
+            "profissional"
+    })
+    @Query("""
+        SELECT a FROM Agendamento a
+        WHERE a.profissional.estabelecimento.id = :estabelecimentoId
+          AND a.dataHoraInicio >= :agora
+          AND a.dataHoraInicio < :fimDia
+          AND a.status IN :statusList
+        ORDER BY a.dataHoraInicio ASC
+    """)
+    List<Agendamento> buscarProximosAtendimentos(
+            @Param("estabelecimentoId") Long estabelecimentoId,
+            @Param("agora") LocalDateTime agora,
+            @Param("fimDia") LocalDateTime fimDia,
+            @Param("statusList") List<StatusAgendamento> statusList
+    );
+
 }
