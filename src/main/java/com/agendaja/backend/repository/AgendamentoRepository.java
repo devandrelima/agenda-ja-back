@@ -239,4 +239,64 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("statusList") List<StatusAgendamento> statusList
     );
 
+    @Query("""
+    SELECT
+        COUNT(CASE
+            WHEN a.status = :concluido THEN a.id
+        END) AS totalConcluidos,
+
+        COALESCE(SUM(CASE
+            WHEN a.status = :concluido THEN a.servico.valor
+            ELSE 0
+        END), 0) AS faturamentoConcluidos,
+
+        COUNT(CASE
+            WHEN a.status = :confirmado
+              OR a.status = :concluido
+            THEN a.id
+        END) AS totalConfirmados,
+
+        COUNT(CASE
+            WHEN a.status <> :cancelado
+            THEN a.id
+        END) AS totalConsideradosNaTaxa
+
+    FROM Agendamento a
+    WHERE a.profissional.estabelecimento.id = :estabelecimentoId
+      AND a.dataHoraInicio >= :inicio
+      AND a.dataHoraInicio < :fim
+""")
+    RelatorioOperacionalProjection buscarIndicadoresRelatorio(
+            @Param("estabelecimentoId") Long estabelecimentoId,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fim") LocalDateTime fim,
+            @Param("concluido") StatusAgendamento concluido,
+            @Param("confirmado") StatusAgendamento confirmado,
+            @Param("cancelado") StatusAgendamento cancelado
+    );
+
+    @Query("""
+    SELECT
+        s.id AS servicoId,
+        s.nome AS servicoNome,
+        COUNT(a.id) AS quantidadeAgendamentos
+
+    FROM Agendamento a
+    JOIN a.servico s
+
+    WHERE a.profissional.estabelecimento.id = :estabelecimentoId
+      AND a.dataHoraInicio >= :inicio
+      AND a.dataHoraInicio < :fim
+      AND a.status <> :cancelado
+
+    GROUP BY s.id, s.nome
+    ORDER BY COUNT(a.id) DESC, s.nome ASC
+""")
+    List<ServicoPopularProjection> buscarServicosMaisPopulares(
+            @Param("estabelecimentoId") Long estabelecimentoId,
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fim") LocalDateTime fim,
+            @Param("cancelado") StatusAgendamento cancelado
+    );
+
 }
