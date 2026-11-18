@@ -10,11 +10,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -93,5 +96,40 @@ public class EmailAdapterTest {
         assertEquals("Lembrete de Agendamento Amanhã - AgendaJá", mensagemEnviada.getSubject());
         assertTrue(mensagemEnviada.getText().contains("Corte de Cabelo"));
         assertTrue(mensagemEnviada.getText().contains("Salão Aurora"));
+    }
+
+	@Test
+    void deveEnviarLembreteComRemetenteConfigurado() {
+        ReflectionTestUtils.setField(emailAdapter, "remetente", "no-reply@agendaja.local");
+
+        emailAdapter.enviarLembreteAgendamento(agendamentoMock);
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        assertEquals("no-reply@agendaja.local", captor.getValue().getFrom());
+    }
+
+    @Test
+    void deveEnviarLembreteSemRemetenteQuandoEmBrancoOuNulo() {
+        ReflectionTestUtils.setField(emailAdapter, "remetente", "   ");
+        emailAdapter.enviarLembreteAgendamento(agendamentoMock);
+
+        ReflectionTestUtils.setField(emailAdapter, "remetente", null);
+        emailAdapter.enviarLembreteAgendamento(agendamentoMock);
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender, times(2)).send(captor.capture());
+        assertNull(captor.getAllValues().get(0).getFrom());
+        assertNull(captor.getAllValues().get(1).getFrom());
+    }
+
+	@Test
+    void deveTratarFalhaSmtpEmTodosOsMetodosDeEnvio() {
+        doThrow(new RuntimeException("SMTP Down")).when(mailSender).send(any(SimpleMailMessage.class));
+
+        assertDoesNotThrow(() -> emailAdapter.enviarSolicitacaoAgendamento(agendamentoMock));
+        assertDoesNotThrow(() -> emailAdapter.enviarConfirmacaoAgendamento(agendamentoMock));
+        assertDoesNotThrow(() -> emailAdapter.enviarRecuperacaoSenha("teste@email.com", "http://link"));
+        assertDoesNotThrow(() -> emailAdapter.enviarLembreteAgendamento(agendamentoMock));
     }
 }
