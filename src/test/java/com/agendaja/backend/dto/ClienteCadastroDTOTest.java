@@ -4,17 +4,14 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ClienteCadastroDTOTest {
-
 	private static ValidatorFactory factory;
 	private static Validator validator;
 
@@ -29,24 +26,13 @@ class ClienteCadastroDTOTest {
 		factory.close();
 	}
 
-	private ClienteCadastroDTO criarDto(
-			String nome,
-			String telefone,
-			String email,
-			String senha
-	) {
-		return new ClienteCadastroDTO(
-				nome,
-				telefone,
-				email,
-				senha
-		);
+	private ClienteCadastroDTO criarDto(String nome, String telefone, String email, String senha)
+	{
+		return new ClienteCadastroDTO(nome, telefone, email, senha);
 	}
 
-	private boolean contemErroNoCampo(
-			Set<ConstraintViolation<ClienteCadastroDTO>> erros,
-			String campo
-	) {
+	private boolean contemErroNoCampo(Set<ConstraintViolation<ClienteCadastroDTO>> erros, String campo)
+	{
 		return erros.stream().anyMatch(
 				erro -> erro.getPropertyPath()
 						.toString()
@@ -56,7 +42,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveAceitarCadastroValido() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"84999999999",
@@ -69,7 +54,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveRejeitarNomeVazio() {
-
 		var dto = criarDto(
 				"   ",
 				"84999999999",
@@ -84,7 +68,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveRejeitarTelefoneVazio() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"",
@@ -99,7 +82,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveRejeitarTelefoneComQuantidadeInvalidaDeDigitos() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"12345",
@@ -114,7 +96,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveAceitarTelefoneFormatado() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"(84) 99999-9999",
@@ -128,7 +109,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveRejeitarEmailInvalido() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"84999999999",
@@ -143,7 +123,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveRejeitarEmailVazio() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"84999999999",
@@ -158,7 +137,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveRejeitarSenhaCurta() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"84999999999",
@@ -173,7 +151,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveRejeitarSenhaVazia() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"84999999999",
@@ -188,7 +165,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void deveNormalizarNomeTelefoneEEmail() {
-
 		var dto = criarDto(
 				"  Maria Silva  ",
 				"(84) 99999-9999",
@@ -205,7 +181,6 @@ class ClienteCadastroDTOTest {
 
 	@Test
 	void naoDeveModificarSenhaDuranteNormalizacao() {
-
 		var dto = criarDto(
 				"Maria Silva",
 				"84999999999",
@@ -215,4 +190,15 @@ class ClienteCadastroDTOTest {
 
 		assertEquals("  SenhaSegura123  ", dto.senha());
 	}
+
+	@Test
+    void deveManterCamposNulosNaInstanciacaoERejeitarNaValidacao() {
+        var dto = new ClienteCadastroDTO(null, null, null, null);
+
+        assertNull(dto.nome());
+        assertNull(dto.telefone());
+        assertNull(dto.email());
+        assertNull(dto.senha());
+        assertEquals(4, validator.validate(dto).size());
+    }
 }
