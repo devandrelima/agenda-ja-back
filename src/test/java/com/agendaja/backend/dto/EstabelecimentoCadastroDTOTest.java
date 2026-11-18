@@ -1,21 +1,17 @@
-
 package com.agendaja.backend.dto;
 
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import jakarta.validation.ConstraintViolation;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class EstabelecimentoCadastroDTOTest {
-
 	private static ValidatorFactory factory;
 	private static Validator validator;
 
@@ -32,7 +28,6 @@ class EstabelecimentoCadastroDTOTest {
 
 	@Test
 	void deveRejeitarEmailInvalido() {
-
 		var dto = criarDto("email-invalido", "SenhaSegura123");
 
 		Set<ConstraintViolation<EstabelecimentoCadastroDTO>> erros =
@@ -43,7 +38,6 @@ class EstabelecimentoCadastroDTOTest {
 
 	@Test
 	void deveRejeitarSenhaCurta() {
-
 		var dto = criarDto("joao@email.com", "123");
 
 		var erros = validator.validate(dto);
@@ -53,7 +47,6 @@ class EstabelecimentoCadastroDTOTest {
 
 	@Test
 	void deveAceitarDadosValidos() {
-
 		var dto = criarDto("joao@email.com", "SenhaSegura123");
 
 		var erros = validator.validate(dto);
@@ -63,7 +56,6 @@ class EstabelecimentoCadastroDTOTest {
 
 	@Test
 	void deveRemoverEspacosDoEmailNoDTO() {
-
 		var dto = criarDto(
 				"  joao@email.com  ",
 				"SenhaSegura123"
@@ -74,10 +66,8 @@ class EstabelecimentoCadastroDTOTest {
 		assertTrue(validator.validate(dto).isEmpty());
 	}
 
-	private EstabelecimentoCadastroDTO criarDto(
-			String email,
-			String senha) {
-
+	private EstabelecimentoCadastroDTO criarDto(String email, String senha)
+	{
 		return new EstabelecimentoCadastroDTO(
 				"Barbearia Teste",
 				"BARBEARIA",
@@ -89,12 +79,19 @@ class EstabelecimentoCadastroDTOTest {
 		);
 	}
 
-	private boolean contemErroNoCampo(
-			Set<ConstraintViolation<EstabelecimentoCadastroDTO>> erros,
-			String campo) {
-
+	private boolean contemErroNoCampo(Set<ConstraintViolation<EstabelecimentoCadastroDTO>> erros, String campo)
+	{
 		return erros.stream().anyMatch(
 				erro -> erro.getPropertyPath().toString().equals(campo)
 		);
 	}
+
+	@Test
+    void deveManterEmailNuloNaInstanciacaoERejeitarNaValidacao() {
+        var dto = criarDto(null, "SenhaSegura123");
+
+        assertNull(dto.email());
+        var erros = validator.validate(dto);
+        assertTrue(contemErroNoCampo(erros, "email"));
+    }
 }
