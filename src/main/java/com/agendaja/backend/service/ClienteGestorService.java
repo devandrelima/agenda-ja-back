@@ -63,7 +63,7 @@ public class ClienteGestorService {
 
     private String calcularServicoMaisFrequente(List<Agendamento> agendamentos)
     {
-        if (agendamentos == null || agendamentos.isEmpty()) return "Nenhum";
+        if (agendamentos.isEmpty()) return "Nenhum";
 
         // Agrupa os agendamentos pelo nome do serviço e conta as ocorrências, pegando o que tiver maior contagem
         return agendamentos.stream()
