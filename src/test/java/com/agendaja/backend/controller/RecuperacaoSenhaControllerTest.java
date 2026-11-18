@@ -3,7 +3,6 @@ package com.agendaja.backend.controller;
 import com.agendaja.backend.config.SecurityConfig;
 import com.agendaja.backend.dto.RedefinicaoSenhaDTO;
 import com.agendaja.backend.service.RecuperacaoSenhaService;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -16,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -24,7 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(RecuperacaoSenhaController.class)
 @Import(SecurityConfig.class)
 class RecuperacaoSenhaControllerTest {
-
 	@Autowired
 	private MockMvc mvc;
 
@@ -32,9 +29,7 @@ class RecuperacaoSenhaControllerTest {
 	private RecuperacaoSenhaService service;
 
 	@Test
-	void devePermitirSolicitarSemAutenticacao()
-			throws Exception {
-
+	void devePermitirSolicitarSemAutenticacao() throws Exception {
 		mvc.perform(
 						post("/api/auth/senha/solicitar-recuperacao")
 								.with(csrf())
@@ -52,9 +47,7 @@ class RecuperacaoSenhaControllerTest {
 	}
 
 	@Test
-	void deveExigirCsrf()
-			throws Exception {
-
+	void deveExigirCsrf() throws Exception {
 		mvc.perform(
 						post("/api/auth/senha/solicitar-recuperacao")
 								.contentType(MediaType.APPLICATION_JSON)
@@ -70,9 +63,7 @@ class RecuperacaoSenhaControllerTest {
 	}
 
 	@Test
-	void deveRedefinirSenhaSemEstarLogado()
-			throws Exception {
-
+	void deveRedefinirSenhaSemEstarLogado() throws Exception {
 		mvc.perform(
 						post("/api/auth/senha/redefinir")
 								.with(csrf())
@@ -92,9 +83,7 @@ class RecuperacaoSenhaControllerTest {
 	}
 
 	@Test
-	void deveRetornar400ParaTokenInvalido()
-			throws Exception {
-
+	void deveRetornar400ParaTokenInvalido() throws Exception {
 		doThrow(
 				new ResponseStatusException(
 						HttpStatus.BAD_REQUEST,
@@ -121,9 +110,7 @@ class RecuperacaoSenhaControllerTest {
 	}
 
 	@Test
-	void deveRejeitarNovaSenhaCurta()
-			throws Exception {
-
+	void deveRejeitarNovaSenhaCurta() throws Exception {
 		mvc.perform(
 						post("/api/auth/senha/redefinir")
 								.with(csrf())
@@ -138,5 +125,25 @@ class RecuperacaoSenhaControllerTest {
 				.andExpect(status().isBadRequest());
 
 		verifyNoInteractions(service);
+	}
+
+	@Test
+	void deveRetornarMensagemPadraoQuandoExcecaoNaoTiverMotivo() throws Exception {
+		doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST))
+				.when(service).redefinir(any());
+
+		mvc.perform(
+				post("/api/auth/senha/redefinir")
+						.with(csrf())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "token": "errado",
+								  "novaSenha": "NovaSenhaForte123"
+								}
+								""")
+		)
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.mensagem").value("Solicitação inválida."));
 	}
 }

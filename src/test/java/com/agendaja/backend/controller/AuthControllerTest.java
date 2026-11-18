@@ -1,42 +1,39 @@
-
 package com.agendaja.backend.controller;
 
 import com.agendaja.backend.config.SecurityConfig;
+import com.agendaja.backend.model.Estabelecimento;
 import com.agendaja.backend.model.Usuario;
 import com.agendaja.backend.repository.UsuarioRepository;
-
+import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.Test;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
 class AuthControllerTest {
-
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -55,8 +52,8 @@ class AuthControllerTest {
         }
         """;
 
-	private void configurarLoginValido() {
-
+	private void configurarLoginValido()
+	{
 		var autenticacao =
 				UsernamePasswordAuthenticationToken.authenticated(
 						EMAIL,
@@ -78,7 +75,8 @@ class AuthControllerTest {
 				.thenReturn(Optional.of(usuario));
 	}
 
-	private MockHttpSession realizarLogin() throws Exception {
+	private MockHttpSession realizarLogin() throws Exception
+	{
 		return (MockHttpSession) mockMvc.perform(
 						post("/api/auth/login")
 								.with(csrf())
@@ -92,9 +90,7 @@ class AuthControllerTest {
 	}
 
 	@Test
-	void deveRealizarLoginComCredenciaisValidas()
-			throws Exception {
-
+	void deveRealizarLoginComCredenciaisValidas() throws Exception {
 		configurarLoginValido();
 
 		mockMvc.perform(post("/api/auth/login")
@@ -108,9 +104,7 @@ class AuthControllerTest {
 	}
 
 	@Test
-	void deveRejeitarCredenciaisInvalidas()
-			throws Exception {
-
+	void deveRejeitarCredenciaisInvalidas() throws Exception {
 		when(authenticationManager.authenticate(any()))
 				.thenThrow(
 						new BadCredentialsException("Credenciais inválidas")
@@ -126,9 +120,7 @@ class AuthControllerTest {
 	}
 
 	@Test
-	void deveManterAutenticacaoNaSessao()
-			throws Exception {
-
+	void deveManterAutenticacaoNaSessao() throws Exception {
 		configurarLoginValido();
 
 		MockHttpSession sessao = realizarLogin();
@@ -141,9 +133,7 @@ class AuthControllerTest {
 	}
 
 	@Test
-	void deveInvalidarSessaoAoFazerLogout()
-			throws Exception {
-
+	void deveInvalidarSessaoAoFazerLogout() throws Exception {
 		configurarLoginValido();
 
 		MockHttpSession sessao = realizarLogin();
@@ -161,7 +151,6 @@ class AuthControllerTest {
 
 	@Test
 	void deveAutenticarClienteEManterSessao() throws Exception {
-
 		String emailCliente = "maria@email.com";
 
 		var autenticacao =
@@ -223,7 +212,6 @@ class AuthControllerTest {
 
 	@Test
 	void deveAceitarTelefoneComoIdentificadorNoLogin() throws Exception {
-
 		String telefone = "84999999999";
 
 		var autenticacao = UsernamePasswordAuthenticationToken.authenticated(
@@ -249,4 +237,42 @@ class AuthControllerTest {
 				.andExpect(jsonPath("$.role").value("CLIENTE"));
 	}
 
+	@Test
+	void deveRetornarTokenCsrf() throws Exception {
+		mockMvc.perform(get("/api/auth/csrf"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.token").exists());
+	}
+
+	@Test
+	void deveRetornarEstabelecimentoIdQuandoGestorPossuiEstabelecimento() throws Exception {
+		var estabelecimento = new Estabelecimento(
+				5L, "Barbearia Central", "BARBEARIA", null, "Mossoró/RN"
+		);
+		var gestor = new Usuario(
+				1L, estabelecimento, "João Silva", EMAIL, "hash", "GESTOR"
+		);
+
+		when(usuarioRepository.findByEmail(EMAIL))
+				.thenReturn(Optional.of(gestor));
+
+		mockMvc.perform(get("/api/auth/me")
+						.with(user(EMAIL).roles("GESTOR")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.estabelecimentoId").value(5));
+	}
+
+	@Test
+	void deveLancarExcecaoQuandoUsuarioAutenticadoNaoForEncontradoNoBanco() {
+		when(usuarioRepository.findByEmail("ausente@email.com"))
+				.thenReturn(Optional.empty());
+
+		var erro = assertThrows(
+				ServletException.class,
+				() -> mockMvc.perform(get("/api/auth/me")
+						.with(user("ausente@email.com").roles("GESTOR")))
+		);
+
+		assertInstanceOf(IllegalStateException.class, erro.getCause());
+	}
 }
