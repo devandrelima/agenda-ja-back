@@ -1,17 +1,14 @@
 package com.agendaja.backend.service;
 
 import com.agendaja.backend.model.Estabelecimento;
+import com.agendaja.backend.repository.AvaliacaoRepository;
 import com.agendaja.backend.repository.EstabelecimentoRepository;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.web.server.ResponseStatusException;
-
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,12 +17,14 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EstabelecimentoPublicoServiceTest {
-
 	@Mock
 	private EstabelecimentoRepository repository;
 
 	@Mock
 	private ConfiguracaoEstabelecimentoService configuracaoService;
+
+	@Mock
+    private AvaliacaoRepository avaliacaoRepository;
 
 	@InjectMocks
 	private EstabelecimentoPublicoService service;
@@ -95,4 +94,26 @@ class EstabelecimentoPublicoServiceTest {
 		assertEquals(25L, resposta.id());
 		assertEquals(publicId, resposta.publicId());
 	}
+
+	@Test
+    void deveListarResumoPublicoDosEstabelecimentos() {
+        var estabelecimento = new Estabelecimento(
+                1L,
+                "Barbearia Central",
+                "BARBEARIA",
+                null,
+                "Mossoró/RN"
+        );
+        estabelecimento.setPublicId(UUID.randomUUID());
+
+        when(repository.findAll()).thenReturn(java.util.List.of(estabelecimento));
+        when(avaliacaoRepository.calcularMediaPorEstabelecimento(1L)).thenReturn(4.8);
+        when(avaliacaoRepository.countByEstabelecimentoId(1L)).thenReturn(15L);
+
+        var lista = service.listar();
+
+        assertEquals(1, lista.size());
+        assertEquals("Barbearia Central", lista.get(0).nome());
+        assertEquals(15L, ((Number) lista.get(0).quantidadeAvaliacoes()).longValue());
+    }
 }
