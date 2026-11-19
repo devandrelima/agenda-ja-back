@@ -9,7 +9,10 @@ pipeline {
   environment {
     IMAGE_NAME = 'agenda-ja-back'
     CONTAINER_NAME = 'agenda-ja-back'
+    MAILPIT_CONTAINER = 'agendaja-mailpit'
     HOST_PORT = '8093'
+    MAILPIT_HOST_PORT = '8025'
+    FRONTEND_RESET_PASSWORD_URL = 'http://84.247.135.249:8092/redefinir-senha'
   }
 
   stages {
@@ -72,6 +75,18 @@ pipeline {
         sh '''
           docker network inspect agendaja-net >/dev/null 2>&1 || docker network create agendaja-net
 
+          if ! docker inspect "${MAILPIT_CONTAINER}" >/dev/null 2>&1; then
+            docker run --detach \
+              --name "${MAILPIT_CONTAINER}" \
+              --restart unless-stopped \
+              --network agendaja-net \
+              --publish "${MAILPIT_HOST_PORT}:8025" \
+              axllent/mailpit:latest
+          else
+            docker start "${MAILPIT_CONTAINER}" || true
+            docker network connect agendaja-net "${MAILPIT_CONTAINER}" 2>/dev/null || true
+          fi
+
           if ! docker inspect agendaja-postgres >/dev/null 2>&1; then
             docker run --detach \
               --name agendaja-postgres \
@@ -101,6 +116,10 @@ pipeline {
             --network agendaja-net \
             --publish "${DEPLOY_PORT}:8080" \
             -e DB_URL=jdbc:postgresql://agendaja-postgres:5432/agendaja \
+            -e MAIL_HOST="${MAILPIT_CONTAINER}" \
+            -e MAIL_PORT=1025 \
+            -e MAIL_FROM=no-reply@agendaja.local \
+            -e FRONTEND_RESET_PASSWORD_URL="${FRONTEND_RESET_PASSWORD_URL}" \
             --label "com.agenda-ja.managed-by=jenkins" \
             "${IMAGE_NAME}:${BUILD_NUMBER}"
           docker inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" | grep -x running
