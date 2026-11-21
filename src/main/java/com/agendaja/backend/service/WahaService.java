@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
@@ -73,10 +75,18 @@ public class WahaService {
         try {
             if (!sessaoEmFuncionamento()) return;
 
-            String telefone = normalizarTelefone(agendamento.getCliente().getTelefone());
+            String telefone;
+            try {
+                telefone = normalizarTelefone(agendamento.getCliente().getTelefone());
+            } catch (IllegalArgumentException ex) {
+                log.warn("Notificação WhatsApp ignorada: telefone do destinatário inválido.");
+                return;
+            }
+            String chatId = resolverChatId(telefone);
+            if (chatId == null) return;
             String texto = modelo.formatted(agendamento.getCliente().getNome(), agendamento.getServico().getNome(),
                     agendamento.getProfissional().getNome(), agendamento.getDataHoraInicio().format(DATA_HORA));
-            String corpo = objectMapper.writeValueAsString(Map.of("session", sessao, "chatId", telefone + "@c.us", "text", texto));
+            String corpo = objectMapper.writeValueAsString(Map.of("session", sessao, "chatId", chatId, "text", texto));
             WahaHttpResponse resposta = httpGateway.executar("POST", uri("/api/sendText"), apiKey, corpo, timeout());
             if (resposta.statusCode() >= 300) registrarErro("envio", resposta.statusCode());
         } catch (InterruptedException ex) {
@@ -85,6 +95,45 @@ public class WahaService {
         } catch (Exception ex) {
             log.warn("WAHA indisponível; notificação ignorada para o agendamento {}.", agendamento.getId());
         }
+    }
+
+    /** Resolve o identificador canônico do WAHA (por exemplo, @lid ou @c.us), sem inferi-lo localmente. */
+    private String resolverChatId(String telefone) {
+        try {
+            String consulta = "/api/contacts/check-exists?phone=" + codificar(telefone) + "&session=" + codificar(sessao);
+            WahaHttpResponse resposta = httpGateway.executar("GET", uri(consulta), apiKey, null, timeout());
+            if (resposta.statusCode() == 401) {
+                log.warn("WAHA recusou a credencial durante verificação do destinatário.");
+                return null;
+            }
+            if (resposta.statusCode() >= 300) {
+                registrarErroContato(resposta.statusCode());
+                return null;
+            }
+            JsonNode dados = objectMapper.readTree(resposta.bodyAsString());
+            if (!dados.has("numberExists") || !dados.path("numberExists").isBoolean()) {
+                log.warn("WAHA retornou resposta inválida ao verificar destinatário.");
+                return null;
+            }
+            if (!dados.path("numberExists").asBoolean()) {
+                log.info("Notificação WhatsApp ignorada: destinatário não possui WhatsApp.");
+                return null;
+            }
+            String chatId = dados.path("chatId").asText("").strip();
+            if (chatId.isEmpty()) {
+                log.warn("WAHA retornou destinatário sem chatId.");
+                return null;
+            }
+            return chatId;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("Verificação do destinatário WAHA interrompida.");
+        } catch (java.net.http.HttpTimeoutException ex) {
+            log.warn("Tempo esgotado ao verificar destinatário no WAHA.");
+        } catch (Exception ex) {
+            log.warn("WAHA indisponível durante verificação do destinatário.");
+        }
+        return null;
     }
 
     private boolean sessaoEmFuncionamento() {
@@ -141,6 +190,10 @@ public class WahaService {
         return URI.create(baseUrl.replaceAll("/$", "") + caminho);
     }
 
+    private String codificar(String valor) {
+        return URLEncoder.encode(valor, StandardCharsets.UTF_8);
+    }
+
     private Duration timeout() {
         return Duration.ofMillis(readTimeoutMs);
     }
@@ -150,6 +203,12 @@ public class WahaService {
         else if (status == 404) log.info("Sessão WAHA não encontrada; notificação ignorada.");
         else if (status >= 500) log.warn("WAHA indisponível durante {}.", operacao);
         else log.warn("WAHA recusou {} (HTTP {}).", operacao, status);
+    }
+
+    private void registrarErroContato(int status) {
+        if (status == 404) log.warn("WAHA não encontrou o endpoint de verificação do destinatário.");
+        else if (status >= 500) log.warn("WAHA indisponível durante verificação do destinatário.");
+        else log.warn("WAHA recusou a verificação do destinatário (HTTP {}).", status);
     }
 
     private String normalizarTelefone(String telefone) {
