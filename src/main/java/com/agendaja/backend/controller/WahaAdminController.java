@@ -3,6 +3,7 @@ package com.agendaja.backend.controller;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
 import com.agendaja.backend.service.WahaService;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -13,11 +14,12 @@ import org.springframework.web.bind.annotation.*;
 public class WahaAdminController {
     private final EstabelecimentoAuthorizationService authorizationService;
     private final WahaService wahaService;
+    private final ObjectMapper objectMapper;
 
     @GetMapping
     public JsonNode status(@PathVariable Long estabelecimentoId, Authentication authentication) {
         authorizationService.validarAcesso(authentication.getName(), estabelecimentoId);
-        if (!wahaService.habilitado()) return new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode().put("enabled", false);
+        if (!wahaService.habilitado()) return objectMapper.createObjectNode().put("enabled", false);
         return wahaService.consultarSessao(estabelecimentoId);
     }
     @PostMapping("/conexao")
