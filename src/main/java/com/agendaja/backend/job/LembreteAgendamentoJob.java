@@ -4,6 +4,7 @@ import com.agendaja.backend.adapter.NotificadorService;
 import com.agendaja.backend.model.Agendamento;
 import com.agendaja.backend.model.StatusAgendamento;
 import com.agendaja.backend.repository.AgendamentoRepository;
+import com.agendaja.backend.service.WahaService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ public class LembreteAgendamentoJob {
 
     private final AgendamentoRepository agendamentoRepository;
     private final NotificadorService notificadorService;
+    private final WahaService wahaService;
 
     // A expressão Cron "0 0 8 * * *" significa: Às 08h 00m 00s, todos os dias
     @Scheduled(cron = "0 0 8 * * *")
@@ -50,6 +52,7 @@ public class LembreteAgendamentoJob {
         for (Agendamento agendamento : elegiveis) {
             try {
                 notificadorService.enviarLembreteAgendamento(agendamento);
+                wahaService.enviarLembrete(agendamento);
                 
                 // Marca como enviado. Como o método é @Transactional, 
                 // o JPA fará o flush automático ao fim da execução.

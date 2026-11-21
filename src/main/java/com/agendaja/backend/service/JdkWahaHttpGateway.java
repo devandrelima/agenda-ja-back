@@ -1,0 +1,35 @@
+package com.agendaja.backend.service;
+
+import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+
+@Component
+public class JdkWahaHttpGateway implements WahaHttpGateway {
+    private final HttpClient clienteHttp;
+
+    public JdkWahaHttpGateway(@Value("${app.waha.connect-timeout-ms:5000}") long connectTimeoutMs) {
+        this.clienteHttp = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(connectTimeoutMs)).build();
+    }
+
+    @Override
+    public WahaHttpResponse executar(String metodo, URI uri, String apiKey, String corpo, Duration timeout) throws Exception {
+        HttpRequest.Builder requisicao = HttpRequest.newBuilder(uri)
+                .timeout(timeout)
+                .header("X-Api-Key", apiKey)
+                .header("Accept", "application/json");
+        if ("GET".equals(metodo)) {
+            requisicao.GET();
+        } else {
+            requisicao.header("Content-Type", "application/json")
+                    .method(metodo, HttpRequest.BodyPublishers.ofString(corpo));
+        }
+        HttpResponse<String> resposta = clienteHttp.send(requisicao.build(), HttpResponse.BodyHandlers.ofString());
+        return new WahaHttpResponse(resposta.statusCode(), resposta.body());
+    }
+}

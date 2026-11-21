@@ -7,6 +7,7 @@ import com.agendaja.backend.event.AgendamentoStatusAlteradoEvent;
 import com.agendaja.backend.model.Agendamento;
 import com.agendaja.backend.model.StatusAgendamento;
 import com.agendaja.backend.model.Usuario;
+import com.agendaja.backend.service.WahaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class NotificadorAgendamentoListenerTest {
     @Mock private NotificadorService notificadorService;
+    @Mock private WahaService wahaService;
     @InjectMocks private NotificadorAgendamentoListener listener;
 
     private Agendamento agendamento;
@@ -40,6 +42,7 @@ class NotificadorAgendamentoListenerTest {
         listener.onAgendamentoCriado(new AgendamentoCriadoEvent(agendamento));
 
         verify(notificadorService).enviarSolicitacaoAgendamento(agendamento);
+        verify(wahaService).enviarSolicitacao(agendamento);
     }
 
     @Test
@@ -50,6 +53,7 @@ class NotificadorAgendamentoListenerTest {
                 agendamento, StatusAgendamento.AGUARDANDO_CONFIRMACAO));
 
         verify(notificadorService).enviarConfirmacaoAgendamento(agendamento);
+        verify(wahaService).enviarConfirmacao(agendamento);
     }
 
     @Test
@@ -60,10 +64,11 @@ class NotificadorAgendamentoListenerTest {
                 agendamento, StatusAgendamento.CONFIRMADO));
 
         verifyNoInteractions(notificadorService);
+        verifyNoInteractions(wahaService);
     }
 
     @Test
-    void deveProcessarEventoDeReagendamentoSemErro() {
+    void deveEnviarWhatsAppAoReagendarSemEnviarEmailDuplicado() {
         var inicioAnterior = LocalDateTime.of(2026, 12, 9, 10, 0);
         var fimAnterior = LocalDateTime.of(2026, 12, 9, 10, 30);
 
@@ -71,5 +76,6 @@ class NotificadorAgendamentoListenerTest {
                 agendamento, inicioAnterior, fimAnterior));
 
         verifyNoInteractions(notificadorService);
+        verify(wahaService).enviarReagendamento(agendamento);
     }
 }
