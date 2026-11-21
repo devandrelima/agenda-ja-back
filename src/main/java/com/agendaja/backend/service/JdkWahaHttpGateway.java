@@ -29,7 +29,7 @@ public class JdkWahaHttpGateway implements WahaHttpGateway {
             requisicao.header("Content-Type", "application/json")
                     .method(metodo, HttpRequest.BodyPublishers.ofString(corpo));
         }
-        HttpResponse<String> resposta = clienteHttp.send(requisicao.build(), HttpResponse.BodyHandlers.ofString());
+        HttpResponse<byte[]> resposta = clienteHttp.send(requisicao.build(), HttpResponse.BodyHandlers.ofByteArray());
         return new WahaHttpResponse(resposta.statusCode(), resposta.body());
     }
 }
