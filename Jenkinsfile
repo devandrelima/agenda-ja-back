@@ -13,6 +13,7 @@ pipeline {
     HOST_PORT = '8093'
     MAILPIT_HOST_PORT = '8025'
     FRONTEND_RESET_PASSWORD_URL = 'http://84.247.135.249:8092/redefinir-senha'
+    WAHA_SECRET_FILE = '/opt/agendaja/secrets/waha-api-key'
   }
 
   stages {
@@ -110,6 +111,12 @@ pipeline {
           done
           echo "Subindo ${CONTAINER_NAME} na porta ${DEPLOY_PORT}..."
 
+          docker run --rm \
+            --mount "type=bind,source=${WAHA_SECRET_FILE},target=/run/secrets/waha-api-key,readonly" \
+            --entrypoint sh \
+            "${IMAGE_NAME}:${BUILD_NUMBER}" \
+            -c 'test -s /run/secrets/waha-api-key'
+
           docker run --detach \
             --name "${CONTAINER_NAME}" \
             --restart unless-stopped \
@@ -120,8 +127,16 @@ pipeline {
             -e MAIL_PORT=1025 \
             -e MAIL_FROM=no-reply@agendaja.local \
             -e FRONTEND_RESET_PASSWORD_URL="${FRONTEND_RESET_PASSWORD_URL}" \
+            -e WAHA_ENABLED=true \
+            -e WAHA_BASE_URL=http://agenda-ja-waha:3000 \
+            -e WAHA_SESSION=agendaja \
+            -e WAHA_CONNECT_TIMEOUT_MS=5000 \
+            -e WAHA_READ_TIMEOUT_MS=10000 \
+            --mount "type=bind,source=${WAHA_SECRET_FILE},target=/run/secrets/waha-api-key,readonly" \
+            --entrypoint sh \
             --label "com.agenda-ja.managed-by=jenkins" \
-            "${IMAGE_NAME}:${BUILD_NUMBER}"
+            "${IMAGE_NAME}:${BUILD_NUMBER}" \
+            -c 'export WAHA_API_KEY="$(tr -d "\\r\\n" < /run/secrets/waha-api-key)"; exec java -jar /app/app.jar'
           docker inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" | grep -x running
 
           for tentativa in $(seq 1 18); do
