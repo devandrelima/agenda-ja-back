@@ -7,6 +7,7 @@ import com.agendaja.backend.event.AgendamentoStatusAlteradoEvent;
 import com.agendaja.backend.model.Agendamento;
 import com.agendaja.backend.model.StatusAgendamento;
 import com.agendaja.backend.model.Usuario;
+import com.agendaja.backend.service.WahaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class NotificadorAgendamentoListenerTest {
     @Mock private NotificadorService notificadorService;
+    @Mock private WahaService wahaService;
     @InjectMocks private NotificadorAgendamentoListener listener;
 
     private Agendamento agendamento;

@@ -5,6 +5,7 @@ import com.agendaja.backend.event.AgendamentoCriadoEvent;
 import com.agendaja.backend.event.AgendamentoReagendadoEvent;
 import com.agendaja.backend.event.AgendamentoStatusAlteradoEvent;
 import com.agendaja.backend.model.StatusAgendamento;
+import com.agendaja.backend.service.WahaService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -17,9 +18,11 @@ public class NotificadorAgendamentoListener {
 
     private static final Logger log = LoggerFactory.getLogger(NotificadorAgendamentoListener.class);
     private final NotificadorService notificadorService;
+    private final WahaService wahaService;
 
-    public NotificadorAgendamentoListener(NotificadorService notificadorService) {
+    public NotificadorAgendamentoListener(NotificadorService notificadorService, WahaService wahaService) {
         this.notificadorService = notificadorService;
+        this.wahaService = wahaService;
     }
 
     @Async
@@ -31,6 +34,7 @@ public class NotificadorAgendamentoListener {
                 event.agendamento().getCliente().getNome()
         );
         notificadorService.enviarSolicitacaoAgendamento(event.agendamento());
+        wahaService.enviarSolicitacao(event.agendamento());
     }
 
     @Async
@@ -46,6 +50,7 @@ public class NotificadorAgendamentoListener {
         // Dispara a confirmação definitiva apenas se o novo status for CONFIRMADO
         if (event.agendamento().getStatus() == StatusAgendamento.CONFIRMADO) {
             notificadorService.enviarConfirmacaoAgendamento(event.agendamento());
+            wahaService.enviarConfirmacao(event.agendamento());
         }
     }
 
@@ -58,5 +63,6 @@ public class NotificadorAgendamentoListener {
                 event.agendamento().getDataHoraInicio(),
                 event.agendamento().getCliente().getNome()
         );
+        wahaService.enviarReagendamento(event.agendamento());
     }
 }
