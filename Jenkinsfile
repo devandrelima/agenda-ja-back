@@ -123,6 +123,18 @@ pipeline {
             --label "com.agenda-ja.managed-by=jenkins" \
             "${IMAGE_NAME}:${BUILD_NUMBER}"
           docker inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" | grep -x running
+
+          for tentativa in $(seq 1 18); do
+            if docker exec "${CONTAINER_NAME}" wget -q -O /dev/null http://127.0.0.1:8080/api/auth/csrf; then
+              echo "Backend respondeu à verificação de saúde."
+              exit 0
+            fi
+            sleep 5
+          done
+
+          docker logs --tail 200 "${CONTAINER_NAME}"
+          echo "Backend não respondeu após 90 segundos."
+          exit 1
         '''
       }
     }
