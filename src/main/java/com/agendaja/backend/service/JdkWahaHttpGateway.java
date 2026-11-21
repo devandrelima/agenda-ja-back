@@ -2,6 +2,7 @@ package com.agendaja.backend.service;
 
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,6 +14,7 @@ import java.time.Duration;
 public class JdkWahaHttpGateway implements WahaHttpGateway {
     private final HttpClient clienteHttp;
 
+    @Autowired
     public JdkWahaHttpGateway(@Value("${app.waha.connect-timeout-ms:5000}") long connectTimeoutMs) {
         this(HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
