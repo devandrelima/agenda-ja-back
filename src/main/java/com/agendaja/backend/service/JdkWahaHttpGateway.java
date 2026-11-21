@@ -14,12 +14,24 @@ public class JdkWahaHttpGateway implements WahaHttpGateway {
     private final HttpClient clienteHttp;
 
     public JdkWahaHttpGateway(@Value("${app.waha.connect-timeout-ms:5000}") long connectTimeoutMs) {
-        this.clienteHttp = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(connectTimeoutMs)).build();
+        this(HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofMillis(connectTimeoutMs))
+                .build());
+    }
+
+    JdkWahaHttpGateway(HttpClient clienteHttp) {
+        this.clienteHttp = clienteHttp;
+    }
+
+    HttpClient.Version version() {
+        return clienteHttp.version();
     }
 
     @Override
     public WahaHttpResponse executar(String metodo, URI uri, String apiKey, String corpo, Duration timeout) throws Exception {
         HttpRequest.Builder requisicao = HttpRequest.newBuilder(uri)
+                .version(HttpClient.Version.HTTP_1_1)
                 .timeout(timeout)
                 .header("X-Api-Key", apiKey)
                 .header("Accept", "application/json");
