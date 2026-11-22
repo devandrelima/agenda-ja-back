@@ -7,7 +7,6 @@ import com.agendaja.backend.repository.ServicoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDate;
@@ -15,9 +14,13 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import com.agendaja.backend.config.TimeConfig;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,7 +34,7 @@ class CalculadoraDisponibilidadeServiceTest {
     @Mock
     private AgendamentoRepository agendamentoRepository;
 
-    @InjectMocks
+    private Clock clockFixo;
     private CalculadoraDisponibilidadeService service;
 
     private Estabelecimento estabelecimento;
@@ -41,6 +44,21 @@ class CalculadoraDisponibilidadeServiceTest {
 
     @BeforeEach
     void setup() {
+        // Fixa "agora" em 01/01/2026 às 07:00 (fuso de Brasília) para os testes existentes
+        clockFixo = Clock.fixed(
+                LocalDateTime.of(2026, 1, 1, 7, 0)
+                        .atZone(TimeConfig.ZONA_PADRAO)
+                        .toInstant(),
+                TimeConfig.ZONA_PADRAO
+        );
+
+        service = new CalculadoraDisponibilidadeService(
+                profissionalRepository,
+                servicoRepository,
+                agendamentoRepository,
+                clockFixo
+        );
+
         estabelecimento = new Estabelecimento();
         estabelecimento.setId(1L);
 
@@ -172,5 +190,47 @@ class CalculadoraDisponibilidadeServiceTest {
         List<String> esperados = List.of("08:00", "08:30", "09:00", "14:00", "14:30", "15:00");
         assertEquals(esperados.size(), horarios.size());
         assertTrue(horarios.containsAll(esperados));
+    }
+
+    @Test
+    void deveRetornarListaVaziaParaDataNoPassado() {
+        var dataPassada = LocalDate.of(2025, 12, 31);
+
+        var horarios = service.calcularParaUmProfissional(1L, 1L, 1L, dataPassada);
+
+        assertTrue(horarios.isEmpty());
+        verifyNoInteractions(profissionalRepository, servicoRepository, agendamentoRepository);
+    }
+
+    @Test
+    void deveFiltrarHorariosPassadosQuandoConsultaForParaDiaAtual() {
+        var jornada = new JornadaTrabalho();
+        jornada.setDiaSemana(1); // Segunda-feira
+        jornada.setHoraInicio(LocalTime.of(8, 0));
+        jornada.setHoraFim(LocalTime.of(12, 0));
+        profissional.getJornadasTrabalho().add(jornada);
+
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
+        when(agendamentoRepository.buscarAgendamentosAtivosDoDia(anyLong(), any(), any(), any())).thenReturn(List.of());
+
+        // Simula hoje como segunda-feira 05/01/2026 às 10:15
+        Clock clockMeioDaManha = Clock.fixed(
+                LocalDateTime.of(2026, 1, 5, 10, 15)
+                        .atZone(TimeConfig.ZONA_PADRAO)
+                        .toInstant(),
+                TimeConfig.ZONA_PADRAO
+        );
+        var serviceHoje = new CalculadoraDisponibilidadeService(
+                profissionalRepository,
+                servicoRepository,
+                agendamentoRepository,
+                clockMeioDaManha
+        );
+
+        var horarios = serviceHoje.calcularParaUmProfissional(1L, 1L, 10L, LocalDate.of(2026, 1, 5));
+
+        // Serviço de 60 min (08:00 às 12:00) após as 10:15 -> apenas 10:30 e 11:00
+        assertEquals(List.of(LocalTime.of(10, 30), LocalTime.of(11, 0)), horarios);
     }
 }

@@ -14,6 +14,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Clock;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +22,7 @@ public class CalculadoraDisponibilidadeService {
     private final ProfissionalRepository profissionalRepository;
     private final ServicoRepository servicoRepository;
     private final AgendamentoRepository agendamentoRepository;
+    private final Clock clock;
 
     // Record auxiliar para representar um bloco de tempo
     private record Intervalo(LocalTime inicio, LocalTime fim) {}
@@ -56,6 +58,9 @@ public class CalculadoraDisponibilidadeService {
     @Transactional(readOnly = true)
     public List<LocalTime> calcularParaUmProfissional(Long estabelecimentoId, Long profissionalId, Long servicoId, LocalDate data)
     {
+        LocalDate hoje = LocalDate.now(clock);
+        if (data.isBefore(hoje)) return List.of();
+
         Profissional profissional = profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(profissionalId, estabelecimentoId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profissional não encontrado."));
 
@@ -103,7 +108,14 @@ public class CalculadoraDisponibilidadeService {
             }
         }
 
-        return horariosDisponiveis.stream().distinct().sorted().toList();
+        LocalTime agora = LocalTime.now(clock);
+        boolean ehHoje = data.isEqual(hoje);
+
+        return horariosDisponiveis.stream()
+                .filter(horario -> !ehHoje || horario.isAfter(agora))
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     /**

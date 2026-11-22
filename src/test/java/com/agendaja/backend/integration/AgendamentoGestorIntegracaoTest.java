@@ -1,6 +1,7 @@
 package com.agendaja.backend.integration;
 
 import com.agendaja.backend.config.TestcontainersConfiguration;
+import com.agendaja.backend.config.TimeConfig;
 import com.agendaja.backend.model.*;
 import com.agendaja.backend.repository.*;
 import com.agendaja.backend.service.AgendamentoGestorService;
@@ -14,9 +15,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,11 +42,13 @@ class AgendamentoGestorIntegracaoTest {
     private Long profissionalId;
     private Long servicoId;
     private final String emailGestor = "gestor.agenda@teste.com";
+    private final LocalDate proximaSegunda = LocalDate.now(TimeConfig.ZONA_PADRAO)
+            .with(TemporalAdjusters.next(DayOfWeek.MONDAY));
 
     @BeforeEach
     void setup() {
         agendamentoRepository.deleteAll();
-        
+
         var estabelecimento = estabelecimentoRepository.saveAndFlush(new Estabelecimento(null, "Salão HU16", "SALAO", null, "Rua B"));
         estabelecimentoId = estabelecimento.getId();
 
@@ -58,19 +63,19 @@ class AgendamentoGestorIntegracaoTest {
         novoServico.setEstabelecimento(estabelecimento);
         var servico = servicoRepository.saveAndFlush(novoServico);
         servicoId = servico.getId();
-        
+
         var profissional = new Profissional();
         profissional.setNome("Carlos");
         profissional.setEstabelecimento(estabelecimento);
         profissional.setServicos(List.of(servico));
-        
+
         var jornada = new JornadaTrabalho();
         jornada.setDiaSemana(1); // Segunda-feira
         jornada.setHoraInicio(LocalTime.of(8, 0));
         jornada.setHoraFim(LocalTime.of(12, 0));
         jornada.setProfissional(profissional);
         profissional.getJornadasTrabalho().add(jornada);
-        
+
         profissional = profissionalRepository.saveAndFlush(profissional);
         profissionalId = profissional.getId();
 
@@ -78,8 +83,8 @@ class AgendamentoGestorIntegracaoTest {
         agendamento.setCliente(cliente);
         agendamento.setProfissional(profissional);
         agendamento.setServico(servico);
-        agendamento.setDataHoraInicio(LocalDateTime.of(2026, 11, 2, 9, 0)); // Segunda-feira 09:00
-        agendamento.setDataHoraFim(LocalDateTime.of(2026, 11, 2, 9, 30));
+        agendamento.setDataHoraInicio(proximaSegunda.atTime(9, 0)); // Segunda-feira 09:00
+        agendamento.setDataHoraFim(proximaSegunda.atTime(9, 30));
         agendamento.setStatus(StatusAgendamento.AGUARDANDO_CONFIRMACAO);
         agendamento = agendamentoRepository.saveAndFlush(agendamento);
         agendamentoId = agendamento.getId();
@@ -88,7 +93,7 @@ class AgendamentoGestorIntegracaoTest {
     @Test
     void deveAlterarStatusParaConfirmado() {
         gestorService.alterarStatus(estabelecimentoId, agendamentoId, StatusAgendamento.CONFIRMADO, emailGestor);
-        
+
         var atualizado = agendamentoRepository.findById(agendamentoId).orElseThrow();
         assertEquals(StatusAgendamento.CONFIRMADO, atualizado.getStatus());
     }
@@ -97,9 +102,9 @@ class AgendamentoGestorIntegracaoTest {
     void deveLancarErroAoTentarTransicaoInvalida() {
         // Passa de AGUARDANDO para CANCELADO (Válido)
         gestorService.alterarStatus(estabelecimentoId, agendamentoId, StatusAgendamento.CANCELADO, emailGestor);
-        
+
         // Tenta passar de CANCELADO para CONCLUIDO (Inválido)
-        var erro = assertThrows(ResponseStatusException.class, () -> 
+        var erro = assertThrows(ResponseStatusException.class, () ->
             gestorService.alterarStatus(estabelecimentoId, agendamentoId, StatusAgendamento.CONCLUIDO, emailGestor)
         );
         assertEquals(400, erro.getStatusCode().value());
@@ -108,9 +113,9 @@ class AgendamentoGestorIntegracaoTest {
 
     @Test
     void deveReagendarComSucesso() {
-        LocalDateTime novaData = LocalDateTime.of(2026, 11, 2, 10, 0);
+        LocalDateTime novaData = proximaSegunda.atTime(10, 0);
         gestorService.reagendar(estabelecimentoId, agendamentoId, novaData, emailGestor);
-        
+
         var atualizado = agendamentoRepository.findById(agendamentoId).orElseThrow();
         assertEquals(novaData, atualizado.getDataHoraInicio());
         assertEquals(novaData.plusMinutes(30), atualizado.getDataHoraFim());
@@ -124,14 +129,14 @@ class AgendamentoGestorIntegracaoTest {
         outroAgendamento.setCliente(cliente2);
         outroAgendamento.setProfissional(profissionalRepository.findById(profissionalId).orElseThrow());
         outroAgendamento.setServico(servicoRepository.findById(servicoId).orElseThrow());
-        outroAgendamento.setDataHoraInicio(LocalDateTime.of(2026, 11, 2, 10, 0));
-        outroAgendamento.setDataHoraFim(LocalDateTime.of(2026, 11, 2, 10, 30));
+        outroAgendamento.setDataHoraInicio(proximaSegunda.atTime(10, 0));
+        outroAgendamento.setDataHoraFim(proximaSegunda.atTime(10, 30));
         outroAgendamento.setStatus(StatusAgendamento.CONFIRMADO);
         agendamentoRepository.saveAndFlush(outroAgendamento);
 
         // Tentar reagendar a nossa reserva das 09:00 para as 10:00
-        var erro = assertThrows(ResponseStatusException.class, () -> 
-            gestorService.reagendar(estabelecimentoId, agendamentoId, LocalDateTime.of(2026, 11, 2, 10, 0), emailGestor)
+        var erro = assertThrows(ResponseStatusException.class, () ->
+            gestorService.reagendar(estabelecimentoId, agendamentoId, proximaSegunda.atTime(10, 0), emailGestor)
         );
         assertEquals(409, erro.getStatusCode().value());
         assertTrue(erro.getReason().contains("O novo horário selecionado colide com outra reserva."));
@@ -139,17 +144,15 @@ class AgendamentoGestorIntegracaoTest {
 
     @Test
     void deveAtualizarDisponibilidadeAutomaticamenteAposCancelamento() {
-        LocalDate data = LocalDate.of(2026, 11, 2);
-        
         // Antes de cancelar, o horário das 09:00 está ocupado
-        List<String> horariosAntes = disponibilidadeService.consultarHorarios(estabelecimentoId, servicoId, profissionalId, data);
+        List<String> horariosAntes = disponibilidadeService.consultarHorarios(estabelecimentoId, servicoId, profissionalId, proximaSegunda);
         assertFalse(horariosAntes.contains("09:00"));
-        
+
         // O Gestor cancela o agendamento
         gestorService.alterarStatus(estabelecimentoId, agendamentoId, StatusAgendamento.CANCELADO, emailGestor);
-        
+
         // A Matemática de Intervalos relê os dados e o horário das 09:00 volta a aparecer imediatamente
-        List<String> horariosDepois = disponibilidadeService.consultarHorarios(estabelecimentoId, servicoId, profissionalId, data);
+        List<String> horariosDepois = disponibilidadeService.consultarHorarios(estabelecimentoId, servicoId, profissionalId, proximaSegunda);
         assertTrue(horariosDepois.contains("09:00"));
     }
 }
