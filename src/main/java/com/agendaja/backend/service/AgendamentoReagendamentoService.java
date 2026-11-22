@@ -1,27 +1,23 @@
 package com.agendaja.backend.service;
 
+import com.agendaja.backend.config.TimeConfig;
 import com.agendaja.backend.dto.AgendamentoClienteDTO;
 import com.agendaja.backend.dto.AgendamentoReagendamentoRequestDTO;
 import com.agendaja.backend.dto.AgendamentoRequestDTO;
-
 import com.agendaja.backend.model.StatusAgendamento;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AgendamentoReagendamentoService {
-
 	private final AgendamentoRepository agendamentoRepository;
 	private final UsuarioRepository usuarioRepository;
 	private final CalculadoraDisponibilidadeService disponibilidadeService;
@@ -66,7 +62,7 @@ public class AgendamentoReagendamentoService {
 		}
 
 		// 3. Não permitir reagendamento para horários passados.
-		if (!dto.dataHoraInicio().isAfter(LocalDateTime.now())) {
+		if (!dto.dataHoraInicio().isAfter(LocalDateTime.now(TimeConfig.ZONA_PADRAO))) {
 			throw new ResponseStatusException(
 					HttpStatus.BAD_REQUEST,
 					"O novo horário deve estar no futuro."

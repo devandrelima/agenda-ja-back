@@ -1,6 +1,7 @@
 package com.agendaja.backend.service;
 
 import com.agendaja.backend.builder.AgendamentoBuilder;
+import com.agendaja.backend.config.TimeConfig;
 import com.agendaja.backend.dto.AgendamentoDetalhesDTO;
 import com.agendaja.backend.dto.AgendamentoRequestDTO;
 import com.agendaja.backend.dto.AgendamentoResponseDTO;
@@ -14,6 +15,7 @@ import com.agendaja.backend.repository.ProfissionalRepository;
 import com.agendaja.backend.repository.ServicoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,13 @@ public class AgendamentoService {
     @Transactional
     public AgendamentoResponseDTO registrar(Long estabelecimentoId, AgendamentoRequestDTO dto, String emailCliente)
     {
+        if (!dto.dataHoraInicio().isAfter(LocalDateTime.now(TimeConfig.ZONA_PADRAO))) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "O horário do agendamento deve estar no futuro."
+            );
+        }
+
         Usuario cliente = usuarioRepository.findByEmail(emailCliente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cliente não encontrado."));
 
