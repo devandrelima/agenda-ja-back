@@ -120,15 +120,16 @@ class DisponibilidadeServiceTest {
         // 14:00-18:00 antes de 08:00-12:00 no dia 1 cobre o curto-circuito false à esquerda do &&;
         // dia 2 cobre diaSemana diferente (false); folga preenchida cobre o laço de folgas.
         var jornadas = List.of(
-                new JornadaTrabalhoDTO(1, LocalTime.of(14, 0), LocalTime.of(18, 0)),
+                new JornadaTrabalhoDTO(1, LocalTime.of(14, 0), LocalTime.of(16, 0)),
                 new JornadaTrabalhoDTO(1, LocalTime.of(8, 0), LocalTime.of(12, 0)),
+                new JornadaTrabalhoDTO(1, LocalTime.of(17, 0), LocalTime.of(19, 0)),
                 new JornadaTrabalhoDTO(2, LocalTime.of(9, 0), LocalTime.of(12, 0))
         );
         var folgas = List.of(new FolgaDTO(LocalDate.of(2026, 12, 25), "Natal"));
 
         disponibilidadeService.atualizar(1L, 2L, new DisponibilidadeRequestDTO(jornadas, folgas), "gestor@teste.com");
 
-        assertEquals(3, profissional.getJornadasTrabalho().size());
+        assertEquals(4, profissional.getJornadasTrabalho().size());
         assertEquals(1, profissional.getFolgas().size());
     }
 
