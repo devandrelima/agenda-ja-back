@@ -10,9 +10,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -114,4 +116,18 @@ class AvaliacaoPublicaServiceTest {
 		assertEquals(404, excecao.getStatusCode().value());
 		verifyNoInteractions(avaliacaoRepository);
 	}
+
+	@Test
+    void deveRetornarMediaZeroQuandoTotalForPositivoEMediaRetornarNula() {
+        when(estabelecimentoRepository.existsById(1L)).thenReturn(true);
+        when(avaliacaoRepository.countByEstabelecimentoId(1L)).thenReturn(3L);
+        when(avaliacaoRepository.calcularMediaPorEstabelecimento(1L)).thenReturn(null);
+
+        var resumo = service.consultarResumo(1L);
+
+        assertEquals(
+                new com.agendaja.backend.dto.AvaliacaoResumoDTO(1L, 3L, BigDecimal.ZERO.setScale(2)),
+                resumo
+        );
+    }
 }

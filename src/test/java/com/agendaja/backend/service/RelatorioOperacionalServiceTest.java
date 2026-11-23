@@ -6,29 +6,26 @@ import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.RelatorioOperacionalProjection;
 import com.agendaja.backend.repository.ServicoPopularProjection;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RelatorioOperacionalServiceTest {
-
 	@Mock
 	private AgendamentoRepository agendamentoRepository;
 
@@ -246,4 +243,37 @@ class RelatorioOperacionalServiceTest {
 
 		verifyNoInteractions(agendamentoRepository);
 	}
+
+	@Test
+    void deveRejeitarQuandoDataInicioOuDataFimForNula() {
+        var erroInicioNulo = assertThrows(ResponseStatusException.class,
+                () -> relatorioOperacionalService.consultarRelatorio(1L, null, LocalDate.of(2026, 12, 10), "gestor@teste.com"));
+        assertEquals(400, erroInicioNulo.getStatusCode().value());
+
+        var erroFimNulo = assertThrows(ResponseStatusException.class,
+                () -> relatorioOperacionalService.consultarRelatorio(1L, LocalDate.of(2026, 12, 1), null, "gestor@teste.com"));
+        assertEquals(400, erroFimNulo.getStatusCode().value());
+    }
+
+    @Test
+    void deveRetornarTaxaZeroQuandoTotalConsideradosForNulo() {
+        var indicadores = mock(com.agendaja.backend.repository.RelatorioOperacionalProjection.class);
+        when(indicadores.getTotalConcluidos()).thenReturn(0L);
+        when(indicadores.getFaturamentoConcluidos()).thenReturn(BigDecimal.ZERO);
+        when(indicadores.getTotalConfirmados()).thenReturn(0L);
+        when(indicadores.getTotalConsideradosNaTaxa()).thenReturn(null);
+
+        when(agendamentoRepository.buscarIndicadoresRelatorio(
+                anyLong(), any(), any(), any(), any(), any()
+        )).thenReturn(indicadores);
+        when(agendamentoRepository.buscarServicosMaisPopulares(
+                anyLong(), any(), any(), any()
+        )).thenReturn(List.of());
+
+        var relatorio = relatorioOperacionalService.consultarRelatorio(
+                1L, LocalDate.of(2026, 12, 1), LocalDate.of(2026, 12, 10), "gestor@teste.com"
+        );
+
+        assertEquals(BigDecimal.ZERO.setScale(2), relatorio.taxaConfirmacao());
+    }
 }

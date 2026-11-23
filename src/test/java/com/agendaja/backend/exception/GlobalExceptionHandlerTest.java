@@ -108,4 +108,25 @@ class GlobalExceptionHandlerTest {
         );
         assertSame(dataEx, lancada);
     }
+
+    @Test
+    void deveTratarResponseStatusExceptionComMotivoNuloEmBrancoEPreenchido() {
+        var semMotivo = handler.tratarStatusDaRequisicao(
+                new ResponseStatusException(HttpStatus.NOT_FOUND)
+        );
+        assertEquals(HttpStatus.NOT_FOUND, semMotivo.getStatusCode());
+        assertEquals("Não foi possível concluir a solicitação.", semMotivo.getBody().get("mensagem"));
+
+        var motivoEmBranco = handler.tratarStatusDaRequisicao(
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "   ")
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, motivoEmBranco.getStatusCode());
+        assertEquals("Não foi possível concluir a solicitação.", motivoEmBranco.getBody().get("mensagem"));
+
+        var comMotivo = handler.tratarStatusDaRequisicao(
+                new ResponseStatusException(HttpStatus.CONFLICT, "Horário indisponível.")
+        );
+        assertEquals(HttpStatus.CONFLICT, comMotivo.getStatusCode());
+        assertEquals("Horário indisponível.", comMotivo.getBody().get("mensagem"));
+    }
 }
