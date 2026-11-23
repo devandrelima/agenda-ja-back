@@ -5,22 +5,18 @@ import com.agendaja.backend.model.TokenRecuperacaoSenha;
 import com.agendaja.backend.model.Usuario;
 import com.agendaja.backend.repository.TokenRecuperacaoSenhaRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
@@ -33,7 +29,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RecuperacaoSenhaServiceTest {
-
 	@Mock
 	private UsuarioRepository usuarios;
 
@@ -72,9 +67,7 @@ class RecuperacaoSenhaServiceTest {
 	}
 
 	@Test
-	void deveGerarTokenSeguroESalvarApenasHash()
-			throws Exception {
-
+	void deveGerarTokenSeguroESalvarApenasHash() throws Exception {
 		when(usuarios.findByEmail("maria@teste.com"))
 				.thenReturn(Optional.of(cliente));
 
@@ -314,7 +307,8 @@ class RecuperacaoSenhaServiceTest {
 		verifyNoInteractions(encoder);
 	}
 
-	private TokenRecuperacaoSenha tokenValido() {
+	private TokenRecuperacaoSenha tokenValido()
+	{
 		var token = new TokenRecuperacaoSenha();
 
 		token.setId(8L);
@@ -327,4 +321,47 @@ class RecuperacaoSenhaServiceTest {
 
 		return token;
 	}
+
+	@Test
+    void solicitar_deveGerarNovoLinkComEComercialQuandoUltimoTokenPassouDoIntervaloEUrlJaTemQuery() {
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "urlRedefinicao", "http://localhost:5173/redefinir-senha?origem=email"
+        );
+
+        var usuario = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
+        usuario.setAtivo(true);
+
+        var tokenAntigo = new TokenRecuperacaoSenha();
+        tokenAntigo.setCriadoEm(Instant.now().minusSeconds(120)); // mais antigo que 1 min
+
+        when(usuarios.findByEmail("maria@teste.com")).thenReturn(Optional.of(usuario));
+        when(tokens.findTopByUsuarioIdOrderByCriadoEmDesc(1L)).thenReturn(Optional.of(tokenAntigo));
+
+        service.solicitar("maria@teste.com");
+
+        var captor = ArgumentCaptor.forClass(EmailRecuperacaoSenhaEvent.class);
+        verify(eventos).publishEvent(captor.capture());
+        assertTrue(captor.getValue().link().startsWith("http://localhost:5173/redefinir-senha?origem=email&token="));
+    }
+
+    @Test
+    void redefinir_deveRejeitarQuandoUsuarioDoTokenEstiverInativo() {
+        var usuarioInativo = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
+        usuarioInativo.setAtivo(false);
+
+        var registro = new TokenRecuperacaoSenha();
+        registro.setId(5L);
+        registro.setUsuario(usuarioInativo);
+        registro.setUtilizadoEm(null);
+        registro.setExpiraEm(Instant.now().plusSeconds(600));
+
+        when(tokens.buscarPorHashParaAtualizar(anyString())).thenReturn(Optional.of(registro));
+
+        var erro = assertThrows(
+                ResponseStatusException.class,
+                () -> service.redefinir(new RedefinicaoSenhaDTO("token-qualquer", "NovaSenha123"))
+        );
+
+        assertEquals(400, erro.getStatusCode().value());
+    }
 }
