@@ -55,7 +55,7 @@ public class WahaService {
         WahaHttpResponse resposta = requisitarAdministrativo("GET", "/api/sessions/" + sessao);
         try {
             JsonNode dados = objectMapper.readTree(resposta.bodyAsString());
-            return dados.path("status").asText(dados.path("state").asText("UNKNOWN"));
+            return dados.path("status").asString(dados.path("state").asString("UNKNOWN"));
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "WAHA retornou uma resposta inválida.");
         }
@@ -119,7 +119,7 @@ public class WahaService {
                 log.info("Notificação WhatsApp ignorada: destinatário não possui WhatsApp.");
                 return null;
             }
-            String chatId = dados.path("chatId").asText("").strip();
+            String chatId = dados.path("chatId").asString("").strip();
             if (chatId.isEmpty()) {
                 log.warn("WAHA retornou destinatário sem chatId.");
                 return null;
@@ -144,7 +144,7 @@ public class WahaService {
                 return false;
             }
             JsonNode dados = objectMapper.readTree(resposta.bodyAsString());
-            String status = dados.path("status").asText(dados.path("state").asText(""));
+            String status = dados.path("status").asString(dados.path("state").asString(""));
             if (!"WORKING".equalsIgnoreCase(status)) {
                 log.info("Notificação WhatsApp ignorada: sessão não está pronta ({}).", status.isBlank() ? "sem estado" : status);
                 return false;
