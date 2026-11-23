@@ -90,6 +90,30 @@ class WahaServiceTest {
     }
 
     @Test
+    void orientaOClienteAConfirmarASolicitacao() throws Exception {
+        configurarSessaoEContato(200, "{\"numberExists\":true,\"chatId\":\"" + CHAT_CUS + "\"}");
+        configurarRespostaDeEnvio();
+
+        service.enviarSolicitacao(agendamento);
+
+        String mensagem = capturarPayloadDeEnvio().path("text").asText();
+        assertThat(mensagem)
+                .contains("Para confirmar sua presença, acesse o AgendaJá.")
+                .doesNotContain("Aguarde a confirmação do estabelecimento");
+    }
+
+    @Test
+    void enviaLembreteComTextoObjetivo() throws Exception {
+        configurarSessaoEContato(200, "{\"numberExists\":true,\"chatId\":\"" + CHAT_CUS + "\"}");
+        configurarRespostaDeEnvio();
+
+        service.enviarLembrete(agendamento);
+
+        assertThat(capturarPayloadDeEnvio().path("text").asText())
+                .isEqualTo("Olá, Maria! Lembrete: seu atendimento de Corte com Ana está marcado para 25/11/2026 às 14:00.");
+    }
+
+    @Test
     void naoEnviaQuandoNumeroNaoPossuiWhatsApp() throws Exception {
         configurarSessaoEContato(200, "{\"numberExists\":false}");
 

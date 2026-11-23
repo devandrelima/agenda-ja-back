@@ -102,6 +102,7 @@ public class AgendamentoClienteService {
 		if (agendamento.getCliente() != null) {
 			agendamento.getCliente().getNome();
 			agendamento.getCliente().getEmail();
+			agendamento.getCliente().getTelefone();
 		}
 		if (agendamento.getServico() != null) {
 			agendamento.getServico().getNome();

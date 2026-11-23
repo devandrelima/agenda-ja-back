@@ -118,6 +118,21 @@ class ConfiguracaoEstabelecimentoServiceTest {
     }
 
     @Test
+    void salvarLogo_devePersistirOUmaLogoValidaERemoverComNulo() {
+        when(repository.findById(ESTABELECIMENTO_ID)).thenReturn(Optional.of(estabelecimento));
+        String logo = "data:image/jpeg;base64,bG9nbw==";
+
+        service.salvarLogo(ESTABELECIMENTO_ID, EMAIL, logo);
+        assertEquals(logo, estabelecimento.getLogoUrl());
+
+        service.salvarLogo(ESTABELECIMENTO_ID, EMAIL, null);
+        assertNull(estabelecimento.getLogoUrl());
+
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.salvarLogo(ESTABELECIMENTO_ID, EMAIL, "data:image/png;base64,abc")).getStatusCode().value());
+    }
+
+    @Test
     void lerHorarios_deveTratarNuloValidoEJsonInvalido() {
         // Nulo retorna 7 dias vazios
         estabelecimento.setHorariosFuncionamento(null);

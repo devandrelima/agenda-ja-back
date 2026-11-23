@@ -46,9 +46,21 @@ public class ConfiguracaoEstabelecimentoService {
 
     @Transactional
     public void salvarCapa(Long id, String email, String imagemUrl) {
-        if (imagemUrl != null && (!imagemUrl.startsWith("data:image/jpeg;base64,") || imagemUrl.length() > 3_000_000))
+        if (!imagemValida(imagemUrl))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Imagem de capa inválida.");
         autorizado(id, email).setImagemUrl(imagemUrl);
+    }
+
+    @Transactional
+    public void salvarLogo(Long id, String email, String imagemUrl) {
+        if (!imagemValida(imagemUrl))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Logo inválida.");
+        autorizado(id, email).setLogoUrl(imagemUrl);
+    }
+
+    private boolean imagemValida(String imagemUrl) {
+        return imagemUrl == null
+                || (imagemUrl.startsWith("data:image/jpeg;base64,") && imagemUrl.length() <= 3_000_000);
     }
 
     public List<HorarioFuncionamentoDTO> lerHorarios(Estabelecimento estabelecimento) {

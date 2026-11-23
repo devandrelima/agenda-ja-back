@@ -4,10 +4,11 @@ import com.agendaja.backend.dto.AgendamentoDetalhesDTO;
 import com.agendaja.backend.model.*;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
+import com.agendaja.backend.repository.ProfissionalRepository;
+import com.agendaja.backend.repository.ServicoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,8 +31,13 @@ class AgendamentoServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
     private AgendamentoService agendamentoService;
+
+    @Mock
+    private ProfissionalRepository profissionalRepository;
+
+    @Mock
+    private ServicoRepository servicoRepository;
 
     private Estabelecimento estabelecimento;
     private Agendamento agendamento;
@@ -40,6 +46,13 @@ class AgendamentoServiceTest {
 
     @BeforeEach
     void setup() {
+        agendamentoService = new AgendamentoService(
+                agendamentoRepository,
+                usuarioRepository,
+                profissionalRepository,
+                servicoRepository,
+                eventPublisher
+        );
         estabelecimento = new Estabelecimento();
         estabelecimento.setId(1L);
         estabelecimento.setNome("Salão Teste");
@@ -129,4 +142,5 @@ class AgendamentoServiceTest {
         assertThrows(ResponseStatusException.class, 
                 () -> agendamentoService.consultarDetalhes(1L, 1L, "outro.gestor@teste.com"));
     }
+
 }

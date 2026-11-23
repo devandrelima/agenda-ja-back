@@ -45,6 +45,7 @@ public class AgendamentoGestorService {
             );
 
         agendamento.setStatus(novoStatus);
+        prepararDadosParaNotificacao(agendamento);
         
         // Dispara o evento de forma assíncrona após o commit para o envio de e-mails/WhatsApp futuros
         eventPublisher.publishEvent(new AgendamentoStatusAlteradoEvent(agendamento, statusAnterior));
@@ -78,8 +79,23 @@ public class AgendamentoGestorService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "O novo horário selecionado colide com outra reserva.");
         }
 
+        prepararDadosParaNotificacao(agendamento);
+
         // Dispara o evento de notificação de forma totalmente desacoplada
         eventPublisher.publishEvent(new AgendamentoReagendadoEvent(agendamento, inicioAnterior, fimAnterior));
+    }
+
+    /**
+     * O listener de notificações é assíncrono e roda depois do commit. Inicializamos
+     * explicitamente os dados que ele usa para que não tente carregar relações JPA
+     * preguiçosas em outra thread.
+     */
+    private void prepararDadosParaNotificacao(Agendamento agendamento) {
+        agendamento.getCliente().getNome();
+        agendamento.getCliente().getEmail();
+        agendamento.getCliente().getTelefone();
+        agendamento.getServico().getNome();
+        agendamento.getProfissional().getNome();
     }
 
     @Transactional(readOnly = true)

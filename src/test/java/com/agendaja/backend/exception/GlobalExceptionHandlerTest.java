@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.server.ResponseStatusException;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -16,6 +17,22 @@ import static org.mockito.Mockito.mock;
 
 class GlobalExceptionHandlerTest {
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    @Test
+    void deveExporAMensagemDaRegraDeNegocio() {
+        var response = handler.tratarStatusDaRequisicao(
+                new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "O horário do agendamento deve ser de pelo menos uma hora a partir de agora."
+                )
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(
+                "O horário do agendamento deve ser de pelo menos uma hora a partir de agora.",
+                response.getBody().get("mensagem")
+        );
+    }
 
     @Test
     void deveTratarEmailDuplicadoRetornando409() {

@@ -73,6 +73,7 @@ public class AdminEstabelecimentoController {
 				estabelecimento.getNome(),
 				estabelecimento.getCategoria(),
 				estabelecimento.getImagemUrl(),
+				estabelecimento.getLogoUrl(),
 				estabelecimento.getLocalizacao(),
 				configuracaoService.lerHorarios(estabelecimento)
 		);
@@ -90,6 +91,12 @@ public class AdminEstabelecimentoController {
 		configuracaoService.salvarCapa(id, authentication.getName(), dados.imagemUrl());
 	}
 
+	@PutMapping("/{id}/logo")
+	public void atualizarLogo(@PathVariable Long id, Authentication authentication,
+			@RequestBody LogoRequest dados) {
+		configuracaoService.salvarLogo(id, authentication.getName(), dados.imagemUrl());
+	}
+
 	@PutMapping("/{id}/horarios")
 	public void atualizarHorarios(@PathVariable Long id, Authentication authentication,
 			@RequestBody List<HorarioFuncionamentoDTO> horarios) {
@@ -98,6 +105,7 @@ public class AdminEstabelecimentoController {
 
 	public record DadosRequest(String nome, String categoria, String localizacao) {}
 	public record CapaRequest(String imagemUrl) {}
+	public record LogoRequest(String imagemUrl) {}
 
 	public record EstabelecimentoResumoDTO(
 			Long id,
@@ -105,6 +113,7 @@ public class AdminEstabelecimentoController {
 			String nome,
 			String categoria,
 			String imagemUrl,
+			String logoUrl,
 			String localizacao,
 			List<HorarioFuncionamentoDTO> horariosFuncionamento
 	) {}

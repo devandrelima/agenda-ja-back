@@ -35,11 +35,11 @@ public class WahaService {
     @Value("${app.waha.read-timeout-ms:10000}") private long readTimeoutMs;
 
     public void enviarSolicitacao(Agendamento agendamento) {
-        enviar(agendamento, "Olá, %s! Recebemos sua solicitação de %s com %s para %s. Aguarde a confirmação do estabelecimento.");
+        enviar(agendamento, "Olá, %s! Você solicitou um agendamento de %s com %s para %s. Para confirmar sua presença, acesse o AgendaJá.");
     }
 
     public void enviarConfirmacao(Agendamento agendamento) {
-        enviar(agendamento, "Olá, %s! Seu agendamento de %s com %s foi confirmado para %s.");
+        enviar(agendamento, "Olá, %s! Sua presença foi confirmada para %s com %s em %s.");
     }
 
     public void enviarReagendamento(Agendamento agendamento) {
@@ -47,7 +47,7 @@ public class WahaService {
     }
 
     public void enviarLembrete(Agendamento agendamento) {
-        enviar(agendamento, "Olá, %s! Lembrete: você tem %s com %s em %s.");
+        enviar(agendamento, "Olá, %s! Lembrete: seu atendimento de %s com %s está marcado para %s.");
     }
 
     /** Usado apenas pelo painel autenticado para orientar o pareamento. Não habilita envios. */

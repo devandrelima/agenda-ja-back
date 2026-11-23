@@ -108,11 +108,11 @@ public class CalculadoraDisponibilidadeService {
             }
         }
 
-        LocalTime agora = LocalTime.now(clock);
+        LocalTime primeiroHorarioPermitido = LocalTime.now(clock).plusHours(1);
         boolean ehHoje = data.isEqual(hoje);
 
         return horariosDisponiveis.stream()
-                .filter(horario -> !ehHoje || horario.isAfter(agora))
+                .filter(horario -> !ehHoje || !horario.isBefore(primeiroHorarioPermitido))
                 .distinct()
                 .sorted()
                 .toList();

@@ -207,7 +207,7 @@ class CalculadoraDisponibilidadeServiceTest {
         var jornada = new JornadaTrabalho();
         jornada.setDiaSemana(1); // Segunda-feira
         jornada.setHoraInicio(LocalTime.of(8, 0));
-        jornada.setHoraFim(LocalTime.of(12, 0));
+        jornada.setHoraFim(LocalTime.of(14, 0));
         profissional.getJornadasTrabalho().add(jornada);
 
         when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
@@ -230,7 +230,13 @@ class CalculadoraDisponibilidadeServiceTest {
 
         var horarios = serviceHoje.calcularParaUmProfissional(1L, 1L, 10L, LocalDate.of(2026, 1, 5));
 
-        // Serviço de 60 min (08:00 às 12:00) após as 10:15 -> apenas 10:30 e 11:00
-        assertEquals(List.of(LocalTime.of(10, 30), LocalTime.of(11, 0)), horarios);
+        // Serviço de 60 min (08:00 às 14:00): com uma hora de antecedência,
+        // somente horários a partir de 11:15 podem ser oferecidos.
+        assertEquals(List.of(
+                LocalTime.of(11, 30),
+                LocalTime.of(12, 0),
+                LocalTime.of(12, 30),
+                LocalTime.of(13, 0)
+        ), horarios);
     }
 }
