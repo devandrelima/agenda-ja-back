@@ -3,17 +3,13 @@ package com.agendaja.backend.service;
 import com.agendaja.backend.model.*;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.web.server.ResponseStatusException;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,11 +17,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AgendamentoClienteServiceTest {
-
 	@Mock
 	private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
 
@@ -315,4 +313,24 @@ class AgendamentoClienteServiceTest {
 		verify(agendamentoRepository, never())
 				.delete(any(Agendamento.class));
 	}
+
+	@Test
+    void confirmar_deveTratarRelacionamentosNulosNoCarregamentoQuandoRetornarConflito() {
+        var cliente = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
+        var agendamentoVazio = new com.agendaja.backend.model.Agendamento();
+
+        when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(cliente));
+        when(agendamentoRepository.confirmarSePendente(
+                10L, 1L, StatusAgendamento.AGUARDANDO_CONFIRMACAO, StatusAgendamento.CONFIRMADO
+        )).thenReturn(0);
+        when(agendamentoRepository.findByIdAndClienteId(10L, 1L))
+                .thenReturn(Optional.of(agendamentoVazio));
+
+        var erro = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.confirmar(10L, "maria@teste.com")
+        );
+
+        assertEquals(409, erro.getStatusCode().value());
+    }
 }
