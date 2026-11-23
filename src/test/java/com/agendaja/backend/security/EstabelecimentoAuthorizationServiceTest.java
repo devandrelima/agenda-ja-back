@@ -1,64 +1,71 @@
-
 package com.agendaja.backend.security;
 
 import com.agendaja.backend.model.Estabelecimento;
 import com.agendaja.backend.model.Usuario;
 import com.agendaja.backend.repository.UsuarioRepository;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.security.access.AccessDeniedException;
-
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EstabelecimentoAuthorizationServiceTest {
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
-	@Mock
-	private UsuarioRepository usuarioRepository;
+    @InjectMocks
+    private EstabelecimentoAuthorizationService service;
 
-	@InjectMocks
-	private EstabelecimentoAuthorizationService service;
+    @Test
+    void devePermitirAcessoQuandoGestorPertenceAoEstabelecimento() {
+        var est = new Estabelecimento(1L, "Salão", "SALAO", null, "Centro");
+        var gestor = new Usuario(10L, est, "Gestor", "gestor@teste.com", "hash", "GESTOR");
+        when(usuarioRepository.findByEmail("gestor@teste.com")).thenReturn(Optional.of(gestor));
 
-	private Usuario criarGestor() {
-		var estabelecimento = new Estabelecimento(
-				1L, "Barbearia Teste", "BARBEARIA", null, "Mossoró/RN"
-		);
+        assertDoesNotThrow(() -> service.validarAcesso("gestor@teste.com", 1L));
+    }
 
-		return new Usuario(
-				1L, estabelecimento, "João Silva",
-				"gestor@email.com", "hash", "GESTOR"
-		);
-	}
+    @Test
+    void deveNegarAcessoQuandoUsuarioNaoExiste() {
+        when(usuarioRepository.findByEmail("inexistente@teste.com")).thenReturn(Optional.empty());
 
-	@Test
-	void devePermitirGestorDoEstabelecimento() {
+        assertThrows(AccessDeniedException.class,
+                () -> service.validarAcesso("inexistente@teste.com", 1L));
+    }
 
-		when(usuarioRepository.findByEmail("gestor@email.com"))
-				.thenReturn(Optional.of(criarGestor()));
+    @Test
+    void deveNegarAcessoQuandoUsuarioNaoEGestor() {
+        var est = new Estabelecimento(1L, "Salão", "SALAO", null, "Centro");
+        var cliente = new Usuario(10L, est, "Cliente", "cliente@teste.com", "hash", "CLIENTE");
+        when(usuarioRepository.findByEmail("cliente@teste.com")).thenReturn(Optional.of(cliente));
 
-		assertDoesNotThrow(() ->
-				service.validarAcesso("gestor@email.com", 1L)
-		);
-	}
+        assertThrows(AccessDeniedException.class,
+                () -> service.validarAcesso("cliente@teste.com", 1L));
+    }
 
-	@Test
-	void deveNegarGestorDeOutroEstabelecimento() {
+    @Test
+    void deveNegarAcessoQuandoGestorNaoPossuiEstabelecimentoVinculado() {
+        var gestorSemEst = new Usuario(10L, null, "Gestor", "gestor@teste.com", "hash", "GESTOR");
+        when(usuarioRepository.findByEmail("gestor@teste.com")).thenReturn(Optional.of(gestorSemEst));
 
-		when(usuarioRepository.findByEmail("gestor@email.com"))
-				.thenReturn(Optional.of(criarGestor()));
+        assertThrows(AccessDeniedException.class,
+                () -> service.validarAcesso("gestor@teste.com", 1L));
+    }
 
-		assertThrows(
-				AccessDeniedException.class,
-				() -> service.validarAcesso("gestor@email.com", 2L)
-		);
-	}
+    @Test
+    void deveNegarAcessoQuandoGestorPertenceAOutroEstabelecimento() {
+        var outroEst = new Estabelecimento(2L, "Outro Salão", "SALAO", null, "Centro");
+        var gestor = new Usuario(10L, outroEst, "Gestor", "gestor@teste.com", "hash", "GESTOR");
+        when(usuarioRepository.findByEmail("gestor@teste.com")).thenReturn(Optional.of(gestor));
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.validarAcesso("gestor@teste.com", 1L));
+    }
 }

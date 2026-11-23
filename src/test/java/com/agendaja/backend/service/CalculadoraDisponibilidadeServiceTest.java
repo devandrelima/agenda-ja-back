@@ -207,16 +207,16 @@ class CalculadoraDisponibilidadeServiceTest {
         var jornada = new JornadaTrabalho();
         jornada.setDiaSemana(1); // Segunda-feira
         jornada.setHoraInicio(LocalTime.of(8, 0));
-        jornada.setHoraFim(LocalTime.of(14, 0));
+        jornada.setHoraFim(LocalTime.of(12, 0));
         profissional.getJornadasTrabalho().add(jornada);
 
         when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
         when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
         when(agendamentoRepository.buscarAgendamentosAtivosDoDia(anyLong(), any(), any(), any())).thenReturn(List.of());
 
-        // Simula hoje como segunda-feira 05/01/2026 às 10:15
+        // Simula hoje como segunda-feira 05/01/2026 às 09:15 -> primeiro horário permitido: 10:15
         Clock clockMeioDaManha = Clock.fixed(
-                LocalDateTime.of(2026, 1, 5, 10, 15)
+                LocalDateTime.of(2026, 1, 5, 9, 15)
                         .atZone(TimeConfig.ZONA_PADRAO)
                         .toInstant(),
                 TimeConfig.ZONA_PADRAO
@@ -230,13 +230,103 @@ class CalculadoraDisponibilidadeServiceTest {
 
         var horarios = serviceHoje.calcularParaUmProfissional(1L, 1L, 10L, LocalDate.of(2026, 1, 5));
 
-        // Serviço de 60 min (08:00 às 14:00): com uma hora de antecedência,
-        // somente horários a partir de 11:15 podem ser oferecidos.
-        assertEquals(List.of(
-                LocalTime.of(11, 30),
-                LocalTime.of(12, 0),
-                LocalTime.of(12, 30),
-                LocalTime.of(13, 0)
-        ), horarios);
+        assertEquals(List.of(LocalTime.of(10, 30), LocalTime.of(11, 0)), horarios);
+    }
+
+    @Test
+    void deveLancar404QuandoNenhumProfissionalRealizaOServico() {
+        when(profissionalRepository.findByEstabelecimentoIdAndServicosIdAndAtivoTrue(1L, 10L))
+                .thenReturn(List.of());
+
+        var erro = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.consultarHorarios(1L, 10L, null, dataTeste)
+        );
+        assertEquals(404, erro.getStatusCode().value());
+    }
+
+    @Test
+    void deveValidarExistenciaDeProfissionalServicoEAptidao() {
+        // Profissional não encontrado (404)
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L))
+                .thenReturn(Optional.empty());
+        assertEquals(404, assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.calcularParaUmProfissional(1L, 1L, 10L, dataTeste)
+        ).getStatusCode().value());
+
+        // Serviço não encontrado (404)
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L))
+                .thenReturn(Optional.of(profissional));
+        when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L))
+                .thenReturn(Optional.empty());
+        assertEquals(404, assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.calcularParaUmProfissional(1L, 1L, 10L, dataTeste)
+        ).getStatusCode().value());
+
+        // Profissional não realiza o serviço (400)
+        var outroServico = new Servico();
+        outroServico.setId(99L);
+        outroServico.setDuracaoMinutos(30);
+        when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(99L, 1L))
+                .thenReturn(Optional.of(outroServico));
+        assertEquals(400, assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> service.calcularParaUmProfissional(1L, 1L, 99L, dataTeste)
+        ).getStatusCode().value());
+    }
+
+    @Test
+    void deveCobrirTodosOsCasosDeSubtracaoDeIntervalosEArredondamento() {
+        // Folga em outra data (cobre ramo false do anyMatch)
+        var outraFolga = new Folga();
+        outraFolga.setData(dataTeste.plusDays(1));
+        profissional.getFolgas().add(outraFolga);
+
+        // Jornada 08:00-12:00 (segunda) + jornada 14:00-15:00 (segunda) + jornada de terça (filtrada)
+        var manha = new JornadaTrabalho();
+        manha.setDiaSemana(1);
+        manha.setHoraInicio(LocalTime.of(8, 0));
+        manha.setHoraFim(LocalTime.of(12, 0));
+
+        var tardeCurta = new JornadaTrabalho();
+        tardeCurta.setDiaSemana(1);
+        tardeCurta.setHoraInicio(LocalTime.of(14, 0));
+        tardeCurta.setHoraFim(LocalTime.of(15, 0));
+
+        var terca = new JornadaTrabalho();
+        terca.setDiaSemana(2);
+        terca.setHoraInicio(LocalTime.of(8, 0));
+        terca.setHoraFim(LocalTime.of(12, 0));
+
+        profissional.getJornadasTrabalho().addAll(List.of(manha, tardeCurta, terca));
+
+        // Antes do bloco (07:00-08:00) -> sem interseção (antes)
+        var aAntes = criarAgendamentoNoDia(7, 0, 8, 0);
+        // Depois do bloco (18:00-19:00) -> sem interseção (depois)
+        var aDepois = criarAgendamentoNoDia(18, 0, 19, 0);
+        // Morde início da manhã com minuto quebrado (08:00-09:15) -> arredonda 09:15 para 09:30
+        var aInicio = criarAgendamentoNoDia(8, 0, 9, 15);
+        // Morde fim da manhã (11:00-12:30) -> sobra 09:15-11:00 (slots 09:30 e 10:00)
+        var aFim = criarAgendamentoNoDia(11, 0, 12, 30);
+        // Engole toda a tardeCurta (13:30-15:30) -> bloco removido
+        var aEngole = criarAgendamentoNoDia(13, 30, 15, 30);
+
+        when(profissionalRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(1L, 1L)).thenReturn(Optional.of(profissional));
+        when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(10L, 1L)).thenReturn(Optional.of(servico));
+        when(agendamentoRepository.buscarAgendamentosAtivosDoDia(anyLong(), any(), any(), any()))
+                .thenReturn(List.of(aAntes, aDepois, aInicio, aFim, aEngole));
+
+        List<String> horarios = service.consultarHorarios(1L, 10L, 1L, dataTeste);
+
+        assertEquals(List.of("09:30", "10:00"), horarios);
+    }
+
+    private Agendamento criarAgendamentoNoDia(int hIni, int mIni, int hFim, int mFim) {
+        var ag = new Agendamento();
+        ag.setDataHoraInicio(dataTeste.atTime(hIni, mIni));
+        ag.setDataHoraFim(dataTeste.atTime(hFim, mFim));
+        return ag;
     }
 }

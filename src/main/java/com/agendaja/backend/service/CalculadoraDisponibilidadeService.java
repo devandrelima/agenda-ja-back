@@ -140,11 +140,11 @@ public class CalculadoraDisponibilidadeService {
             }
 
             // Ocupado morde apenas o início do Livre
-            else if (!ocupado.inicio().isAfter(livre.inicio()) && ocupado.fim().isBefore(livre.fim())) 
+            else if (!ocupado.inicio().isAfter(livre.inicio()))
                 result.add(new Intervalo(ocupado.fim(), livre.fim()));
-            
+
             // Ocupado morde apenas o fim do Livre
-            else if (ocupado.inicio().isAfter(livre.inicio()) && !ocupado.fim().isBefore(livre.fim()))
+            else
                 result.add(new Intervalo(livre.inicio(), ocupado.inicio()));
         }
 
