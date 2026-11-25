@@ -1,6 +1,5 @@
 package com.agendaja.backend.service;
 
-import com.agendaja.backend.config.TimeConfig;
 import com.agendaja.backend.dto.AgendamentoClienteDTO;
 import com.agendaja.backend.dto.AgendamentoReagendamentoRequestDTO;
 import com.agendaja.backend.dto.AgendamentoRequestDTO;
@@ -15,7 +14,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.time.Clock;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
