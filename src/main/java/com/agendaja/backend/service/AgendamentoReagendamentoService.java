@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class AgendamentoReagendamentoService {
 	private final UsuarioRepository usuarioRepository;
 	private final CalculadoraDisponibilidadeService disponibilidadeService;
 	private final AgendamentoService agendamentoService;
+	private final Clock clock;
 
 	@Transactional
 	public AgendamentoClienteDTO reagendar(
@@ -29,7 +32,7 @@ public class AgendamentoReagendamentoService {
 			AgendamentoReagendamentoRequestDTO dto,
 			String emailAutenticado
 	) {
-		// 1. Identificar o cliente autenticado.
+		// Identificar o cliente autenticado.
 		var cliente = usuarioRepository.findByEmail(emailAutenticado)
 				.orElseThrow(() -> new ResponseStatusException(
 						HttpStatus.UNAUTHORIZED,
@@ -43,7 +46,7 @@ public class AgendamentoReagendamentoService {
 			);
 		}
 
-		// 2. Consultar somente a reserva pertencente ao cliente.
+		// Consultar somente a reserva pertencente ao cliente.
 		var reservaOriginal = agendamentoRepository
 				.findByIdAndClienteId(agendamentoId, cliente.getId())
 				.orElseThrow(() -> new ResponseStatusException(
@@ -61,8 +64,10 @@ public class AgendamentoReagendamentoService {
 			);
 		}
 
+		LocalDateTime agora = LocalDateTime.now(clock);
+
 		// 3. Não permitir reagendamento para horários passados.
-		if (!dto.dataHoraInicio().isAfter(LocalDateTime.now(TimeConfig.ZONA_PADRAO))) {
+		if (!dto.dataHoraInicio().isAfter(agora)) {
 			throw new ResponseStatusException(
 					HttpStatus.BAD_REQUEST,
 					"O novo horário deve estar no futuro."
@@ -77,7 +82,8 @@ public class AgendamentoReagendamentoService {
 						StatusAgendamento.AGUARDANDO_CONFIRMACAO,
 						StatusAgendamento.CONFIRMADO
 				),
-				StatusAgendamento.CANCELADO
+				StatusAgendamento.CANCELADO,
+				agora
 		);
 
 		if (alterados == 0) {

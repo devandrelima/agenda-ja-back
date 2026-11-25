@@ -38,7 +38,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     )
     @Query("""
         UPDATE Agendamento a
-        SET a.status = :confirmado
+        SET a.status = :confirmado,
+            a.atualizadoEm = :agora
         WHERE a.id = :agendamentoId
           AND a.cliente.id = :clienteId
           AND a.status = :pendente
@@ -47,7 +48,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("agendamentoId") Long agendamentoId,
             @Param("clienteId") Long clienteId,
             @Param("pendente") StatusAgendamento pendente,
-            @Param("confirmado") StatusAgendamento confirmado
+            @Param("confirmado") StatusAgendamento confirmado,
+            @Param("agora") LocalDateTime agora
     );
 
     @Query("""
@@ -71,7 +73,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     )
     @Query("""
         UPDATE Agendamento a
-        SET a.status = :cancelado
+        SET a.status = :cancelado,
+            a.atualizadoEm = :agora
         WHERE a.id = :agendamentoId
           AND a.cliente.id = :clienteId
           AND a.status IN :statusPermitidos
@@ -80,7 +83,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             @Param("agendamentoId") Long agendamentoId,
             @Param("clienteId") Long clienteId,
             @Param("statusPermitidos") List<StatusAgendamento> statusPermitidos,
-            @Param("cancelado") StatusAgendamento cancelado
+            @Param("cancelado") StatusAgendamento cancelado,
+            @Param("agora") LocalDateTime agora
     );
 
     @EntityGraph(attributePaths = {
@@ -111,7 +115,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
         UPDATE Agendamento a
-        SET a.status = :cancelado
+        SET a.status = :cancelado,
+            a.atualizadoEm = :agora
         WHERE a.cliente.id = :clienteId
           AND a.dataHoraInicio > :agora
           AND a.status IN :statusPermitidos

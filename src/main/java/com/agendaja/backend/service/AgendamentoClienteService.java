@@ -12,8 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.util.List;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class AgendamentoClienteService {
 
 	// Injeção do publicador de eventos
 	private final ApplicationEventPublisher applicationEventPublisher;
+	private final Clock clock;
 
 	@Transactional(readOnly = true)
 	public List<AgendamentoClienteDTO> listar(
@@ -66,7 +68,8 @@ public class AgendamentoClienteService {
 				agendamentoId,
 				cliente.getId(),
 				StatusAgendamento.AGUARDANDO_CONFIRMACAO,
-				StatusAgendamento.CONFIRMADO
+				StatusAgendamento.CONFIRMADO,
+				LocalDateTime.now(clock)
 		);
 
 		if (alterados == 0) {
@@ -146,7 +149,8 @@ public class AgendamentoClienteService {
 				agendamentoId,
 				cliente.getId(),
 				List.of(StatusAgendamento.AGUARDANDO_CONFIRMACAO, StatusAgendamento.CONFIRMADO),
-				StatusAgendamento.CANCELADO
+				StatusAgendamento.CANCELADO,
+				LocalDateTime.now(clock)
 		);
 
 		if (alterados == 0) {
