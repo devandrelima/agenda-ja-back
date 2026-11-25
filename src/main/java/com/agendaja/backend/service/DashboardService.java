@@ -5,12 +5,10 @@ import com.agendaja.backend.dto.ProximoAtendimentoDTO;
 import com.agendaja.backend.model.StatusAgendamento;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,21 +16,17 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
-
 	private final AgendamentoRepository agendamentoRepository;
 	private final EstabelecimentoAuthorizationService authorizationService;
+	private final Clock clock;
 
 	@Transactional(readOnly = true)
-	public DashboardResumoDTO consultarDashboard(
-			Long estabelecimentoId,
-			LocalDate data,
-			String emailGestor
-	) {
+	public DashboardResumoDTO consultarDashboard(Long estabelecimentoId, LocalDate data, String emailGestor)
+	{
 		authorizationService.validarAcesso(emailGestor, estabelecimentoId);
 
-		if (data == null) {
-			data = LocalDate.now();
-		}
+		LocalDate hoje = LocalDate.now(clock);
+		if (data == null) data = hoje;
 
 		LocalDateTime inicioDia = data.atStartOfDay();
 		LocalDateTime fimDia = data.plusDays(1).atStartOfDay();
@@ -47,11 +41,11 @@ public class DashboardService {
 				StatusAgendamento.CONCLUIDO
 		);
 
-		LocalDateTime agora = LocalDateTime.now();
+		LocalDateTime agora = LocalDateTime.now(clock);
 
 		// Para uma data futura, todos os horários do dia ainda são futuros.
 		// Para hoje, consideramos apenas os horários a partir do momento atual.
-		LocalDateTime aPartirDe = data.isAfter(LocalDate.now())
+		LocalDateTime aPartirDe = data.isAfter(hoje)
 				? inicioDia
 				: agora;
 

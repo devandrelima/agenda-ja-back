@@ -1,21 +1,18 @@
-
 package com.agendaja.backend.service;
 
+import com.agendaja.backend.config.TimeConfig;
 import com.agendaja.backend.dto.DashboardResumoDTO;
 import com.agendaja.backend.model.*;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.DashboardAgendamentoProjection;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,7 +23,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardServiceTest {
-
 	@Mock
 	private AgendamentoRepository agendamentoRepository;
 
@@ -36,7 +32,9 @@ class DashboardServiceTest {
 	@Mock
 	private DashboardAgendamentoProjection projection;
 
-	@InjectMocks
+	private Clock clockFixo;
+	private LocalDate hojeFixo;
+	private LocalDateTime agoraFixo;
 	private DashboardService dashboardService;
 
 	private Estabelecimento estabelecimento;
@@ -49,6 +47,20 @@ class DashboardServiceTest {
 
 	@BeforeEach
 	void setup() {
+		// Fixa "agora" em 25/11/2026 às 14:00 (America/Sao_Paulo = 17:00 UTC)
+		agoraFixo = LocalDateTime.of(2026, 11, 25, 14, 0);
+		hojeFixo = agoraFixo.toLocalDate();
+		clockFixo = Clock.fixed(
+				agoraFixo.atZone(TimeConfig.ZONA_PADRAO).toInstant(),
+				TimeConfig.ZONA_PADRAO
+		);
+
+		dashboardService = new DashboardService(
+				agendamentoRepository,
+				authorizationService,
+				clockFixo
+		);
+
 		estabelecimento = new Estabelecimento();
 		estabelecimento.setId(estabelecimentoId);
 
@@ -67,11 +79,8 @@ class DashboardServiceTest {
 		profissional.setEstabelecimento(estabelecimento);
 	}
 
-	private Agendamento criarAgendamento(
-			Long id,
-			LocalDateTime horario,
-			StatusAgendamento status
-	) {
+	private Agendamento criarAgendamento(Long id, LocalDateTime horario, StatusAgendamento status)
+	{
 		Agendamento agendamento = new Agendamento();
 		agendamento.setId(id);
 		agendamento.setCliente(cliente);
@@ -84,7 +93,8 @@ class DashboardServiceTest {
 		return agendamento;
 	}
 
-	private void configurarResumo() {
+	private void configurarResumo()
+	{
 		when(agendamentoRepository.buscarResumoDashboard(
 				anyLong(),
 				any(LocalDateTime.class),
@@ -100,15 +110,14 @@ class DashboardServiceTest {
 		when(projection.getPendentes()).thenReturn(5L);
 		when(projection.getCancelados()).thenReturn(1L);
 		when(projection.getConcluidos()).thenReturn(1L);
-		when(projection.getFaturamentoPrevisto())
-				.thenReturn(new BigDecimal("400.00"));
+		when(projection.getFaturamentoPrevisto()).thenReturn(new BigDecimal("400.00"));
 	}
 
 	@Test
 	void deveRetornarIndicadoresDoDashboard() {
 		configurarResumo();
 
-		LocalDate data = LocalDate.now().plusDays(1);
+		LocalDate data = hojeFixo.plusDays(1);
 
 		when(agendamentoRepository.buscarProximosAtendimentos(
 				anyLong(),
@@ -140,7 +149,7 @@ class DashboardServiceTest {
 	void deveRetornarTodosOsProximosAtendimentosSemLimite() {
 		configurarResumo();
 
-		LocalDate data = LocalDate.now().plusDays(1);
+		LocalDate data = hojeFixo.plusDays(1);
 		LocalDateTime horario = data.atTime(8, 0);
 
 		List<Agendamento> agendamentos = List.of(
@@ -169,13 +178,20 @@ class DashboardServiceTest {
 		assertEquals(6, resultado.proximosAtendimentos().size());
 		assertEquals(1L, resultado.proximosAtendimentos().get(0).agendamentoId());
 		assertEquals(6L, resultado.proximosAtendimentos().get(5).agendamentoId());
+		// Para data futura, a consulta deve começar no início do dia (00:00)
+		verify(agendamentoRepository).buscarProximosAtendimentos(
+				eq(estabelecimentoId),
+				eq(data.atStartOfDay()),
+				eq(data.plusDays(1).atStartOfDay()),
+				anyList()
+		);
 	}
 
 	@Test
 	void deveMapearCorretamenteOsDadosDosProximosAtendimentos() {
 		configurarResumo();
 
-		LocalDate data = LocalDate.now().plusDays(1);
+		LocalDate data = hojeFixo.plusDays(1);
 		LocalDateTime horario = data.atTime(10, 30);
 
 		when(agendamentoRepository.buscarProximosAtendimentos(
@@ -206,15 +222,22 @@ class DashboardServiceTest {
 	}
 
 	@Test
-	void deveUtilizarDataAtualQuandoDataNaoForInformada() {
+	void deveUtilizarDataEHoraDoClockQuandoDataNaoForInformada() {
 		configurarResumo();
 
+		// Atendimento dentro das próximas 3 horas (15:30 local, antes das 17:00 UTC)
+		var atendimentoProximo = criarAgendamento(
+				99L,
+				hojeFixo.atTime(15, 30),
+				StatusAgendamento.CONFIRMADO
+		);
+
 		when(agendamentoRepository.buscarProximosAtendimentos(
-				anyLong(),
-				any(LocalDateTime.class),
-				any(LocalDateTime.class),
+				eq(estabelecimentoId),
+				eq(agoraFixo),
+				eq(hojeFixo.plusDays(1).atStartOfDay()),
 				anyList()
-		)).thenReturn(List.of());
+		)).thenReturn(List.of(atendimentoProximo));
 
 		DashboardResumoDTO resultado =
 				dashboardService.consultarDashboard(
@@ -223,16 +246,55 @@ class DashboardServiceTest {
 						emailGestor
 				);
 
-		assertEquals(LocalDate.now(), resultado.data());
+		assertEquals(hojeFixo, resultado.data());
+		assertEquals(1, resultado.proximosAtendimentos().size());
+		assertEquals(99L, resultado.proximosAtendimentos().get(0).agendamentoId());
 
 		verify(agendamentoRepository).buscarResumoDashboard(
 				eq(estabelecimentoId),
-				eq(LocalDate.now().atStartOfDay()),
-				eq(LocalDate.now().plusDays(1).atStartOfDay()),
+				eq(hojeFixo.atStartOfDay()),
+				eq(hojeFixo.plusDays(1).atStartOfDay()),
 				any(),
 				any(),
 				any(),
 				any()
+		);
+		verify(agendamentoRepository).buscarProximosAtendimentos(
+				eq(estabelecimentoId),
+				eq(agoraFixo),
+				eq(hojeFixo.plusDays(1).atStartOfDay()),
+				anyList()
+		);
+	}
+
+	@Test
+	void deveUsarDataLocalCorretaMesmoApos21hEmSaoPaulo() {
+		configurarResumo();
+
+		// 22:30 de 25/11 em São Paulo já é 01:30 de 26/11 em UTC
+		LocalDateTime noiteLocal = LocalDateTime.of(2026, 11, 25, 22, 30);
+		Clock clockNoite = Clock.fixed(
+				noiteLocal.atZone(TimeConfig.ZONA_PADRAO).toInstant(),
+				TimeConfig.ZONA_PADRAO
+		);
+		var serviceNoite = new DashboardService(
+				agendamentoRepository,
+				authorizationService,
+				clockNoite
+		);
+
+		when(agendamentoRepository.buscarProximosAtendimentos(
+				anyLong(), any(), any(), anyList()
+		)).thenReturn(List.of());
+
+		var resultado = serviceNoite.consultarDashboard(estabelecimentoId, null, emailGestor);
+
+		assertEquals(LocalDate.of(2026, 11, 25), resultado.data());
+		verify(agendamentoRepository).buscarProximosAtendimentos(
+				eq(estabelecimentoId),
+				eq(noiteLocal),
+				eq(LocalDate.of(2026, 11, 26).atStartOfDay()),
+				anyList()
 		);
 	}
 
@@ -249,7 +311,7 @@ class DashboardServiceTest {
 
 		dashboardService.consultarDashboard(
 				estabelecimentoId,
-				LocalDate.now(),
+				hojeFixo,
 				emailGestor
 		);
 
@@ -273,7 +335,7 @@ class DashboardServiceTest {
 		DashboardResumoDTO resultado =
 				dashboardService.consultarDashboard(
 						estabelecimentoId,
-						LocalDate.now().plusDays(1),
+						hojeFixo.plusDays(1),
 						emailGestor
 				);
 

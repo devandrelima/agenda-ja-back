@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.time.LocalDateTime;
+import com.agendaja.backend.config.TimeConfig;
 
 @Entity
 @Table(
@@ -46,7 +46,7 @@ public class Avaliacao {
 
 	@PrePersist
 	private void antesDeInserir() {
-		LocalDateTime agora = LocalDateTime.now();
+		LocalDateTime agora = LocalDateTime.now(TimeConfig.ZONA_PADRAO);
 
 		if (criadoEm == null) {
 			criadoEm = agora;
@@ -57,6 +57,6 @@ public class Avaliacao {
 
 	@PreUpdate
 	private void antesDeAtualizar() {
-		atualizadoEm = LocalDateTime.now();
+		atualizadoEm = LocalDateTime.now(TimeConfig.ZONA_PADRAO);
 	}
 }

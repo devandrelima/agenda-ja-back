@@ -1,16 +1,18 @@
 package com.agendaja.backend.service;
 
+import com.agendaja.backend.config.TimeConfig;
 import com.agendaja.backend.model.*;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -25,7 +27,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AgendamentoClienteServiceTest {
 	@Mock
-	private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
+	private ApplicationEventPublisher applicationEventPublisher;
 
 	@Mock
 	AgendamentoRepository agendamentoRepository;
@@ -33,7 +35,8 @@ class AgendamentoClienteServiceTest {
 	@Mock
 	UsuarioRepository usuarioRepository;
 
-	@InjectMocks
+	private Clock clockFixo;
+	private LocalDateTime agoraFixo;
 	AgendamentoClienteService service;
 
 	Usuario cliente;
@@ -43,6 +46,19 @@ class AgendamentoClienteServiceTest {
 
 	@BeforeEach
 	void configurar() {
+		agoraFixo = LocalDateTime.of(2026, 11, 25, 14, 0);
+		clockFixo = Clock.fixed(
+				agoraFixo.atZone(TimeConfig.ZONA_PADRAO).toInstant(),
+				TimeConfig.ZONA_PADRAO
+		);
+
+		service = new AgendamentoClienteService(
+				agendamentoRepository,
+				usuarioRepository,
+				applicationEventPublisher,
+				clockFixo
+		);
+
 		cliente = new Usuario(
 				10L,
 				null,
@@ -135,7 +151,8 @@ class AgendamentoClienteServiceTest {
 				4L,
 				10L,
 				StatusAgendamento.AGUARDANDO_CONFIRMACAO,
-				StatusAgendamento.CONFIRMADO
+				StatusAgendamento.CONFIRMADO,
+				agoraFixo
 		)).thenAnswer(invocation -> {
 			agendamento.setStatus(StatusAgendamento.CONFIRMADO);
 			return 1;
@@ -149,6 +166,13 @@ class AgendamentoClienteServiceTest {
 		var resposta = service.confirmar(4L, email);
 
 		assertEquals("CONFIRMADO", resposta.status());
+		verify(agendamentoRepository).confirmarSePendente(
+				4L,
+				10L,
+				StatusAgendamento.AGUARDANDO_CONFIRMACAO,
+				StatusAgendamento.CONFIRMADO,
+				agoraFixo
+		);
 	}
 
 	@Test
@@ -210,7 +234,8 @@ class AgendamentoClienteServiceTest {
 				eq(4L),
 				eq(10L),
 				anyList(),
-				eq(StatusAgendamento.CANCELADO)
+				eq(StatusAgendamento.CANCELADO),
+				eq(agoraFixo)
 		)).thenAnswer(invocation -> {
 			agendamento.setStatus(StatusAgendamento.CANCELADO);
 			return 1;
@@ -230,7 +255,8 @@ class AgendamentoClienteServiceTest {
 						StatusAgendamento.AGUARDANDO_CONFIRMACAO,
 						StatusAgendamento.CONFIRMADO
 				),
-				StatusAgendamento.CANCELADO
+				StatusAgendamento.CANCELADO,
+				agoraFixo
 		);
 	}
 
@@ -245,7 +271,8 @@ class AgendamentoClienteServiceTest {
 				eq(4L),
 				eq(10L),
 				anyList(),
-				eq(StatusAgendamento.CANCELADO)
+				eq(StatusAgendamento.CANCELADO),
+				eq(agoraFixo)
 		)).thenAnswer(invocation -> {
 			agendamento.setStatus(StatusAgendamento.CANCELADO);
 			return 1;
@@ -315,22 +342,26 @@ class AgendamentoClienteServiceTest {
 	}
 
 	@Test
-    void confirmar_deveTratarRelacionamentosNulosNoCarregamentoQuandoRetornarConflito() {
-        var cliente = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
-        var agendamentoVazio = new com.agendaja.backend.model.Agendamento();
+	void confirmar_deveTratarRelacionamentosNulosNoCarregamentoQuandoRetornarConflito() {
+		var cliente = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
+		var agendamentoVazio = new Agendamento();
 
-        when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(cliente));
-        when(agendamentoRepository.confirmarSePendente(
-                10L, 1L, StatusAgendamento.AGUARDANDO_CONFIRMACAO, StatusAgendamento.CONFIRMADO
-        )).thenReturn(0);
-        when(agendamentoRepository.findByIdAndClienteId(10L, 1L))
-                .thenReturn(Optional.of(agendamentoVazio));
+		when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(cliente));
+		when(agendamentoRepository.confirmarSePendente(
+				10L,
+				1L,
+				StatusAgendamento.AGUARDANDO_CONFIRMACAO,
+				StatusAgendamento.CONFIRMADO,
+				agoraFixo
+		)).thenReturn(0);
+		when(agendamentoRepository.findByIdAndClienteId(10L, 1L))
+				.thenReturn(Optional.of(agendamentoVazio));
 
-        var erro = assertThrows(
-                org.springframework.web.server.ResponseStatusException.class,
-                () -> service.confirmar(10L, "maria@teste.com")
-        );
+		var erro = assertThrows(
+				ResponseStatusException.class,
+				() -> service.confirmar(10L, "maria@teste.com")
+		);
 
-        assertEquals(409, erro.getStatusCode().value());
-    }
+		assertEquals(409, erro.getStatusCode().value());
+	}
 }

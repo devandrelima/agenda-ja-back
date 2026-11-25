@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import com.agendaja.backend.config.TimeConfig;
 
 @Entity
 @Table(name = "agendamentos")
@@ -54,7 +55,7 @@ public class Agendamento {
     @PrePersist
     private void antesDeInserir()
     {
-        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime agora = LocalDateTime.now(TimeConfig.ZONA_PADRAO);
         if (criadoEm == null) criadoEm = agora;
         atualizadoEm = agora;
     }
@@ -62,6 +63,6 @@ public class Agendamento {
     @PreUpdate
     private void antesDeAtualizar()
     {
-        atualizadoEm = LocalDateTime.now();
+        atualizadoEm = LocalDateTime.now(TimeConfig.ZONA_PADRAO);
     }
 }

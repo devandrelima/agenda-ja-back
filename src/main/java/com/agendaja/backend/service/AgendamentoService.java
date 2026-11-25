@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.dao.ConcurrencyFailureException;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -29,13 +31,15 @@ public class AgendamentoService {
     private final UsuarioRepository usuarioRepository;
     private final ProfissionalRepository profissionalRepository;
     private final ServicoRepository servicoRepository;
-    
-    // Injeção para o Padrão Observer
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     @Transactional
     public AgendamentoResponseDTO registrar(Long estabelecimentoId, AgendamentoRequestDTO dto, String emailCliente)
     {
+        if (!dto.dataHoraInicio().isAfter(LocalDateTime.now(clock)))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O horário do agendamento deve estar no futuro.");
+
         Usuario cliente = usuarioRepository.findByEmail(emailCliente)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cliente não encontrado."));
 

@@ -1,5 +1,6 @@
 package com.agendaja.backend.service;
 
+import com.agendaja.backend.config.TimeConfig;
 import com.agendaja.backend.dto.AgendamentoReagendamentoRequestDTO;
 import com.agendaja.backend.dto.AgendamentoRequestDTO;
 import com.agendaja.backend.dto.AgendamentoResponseDTO;
@@ -9,11 +10,11 @@ import com.agendaja.backend.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -44,7 +45,8 @@ class AgendamentoReagendamentoServiceTest {
 	@Mock
 	private AgendamentoService agendamentoService;
 
-	@InjectMocks
+	private Clock clockFixo;
+	private LocalDateTime agoraFixo;
 	private AgendamentoReagendamentoService service;
 
 	private Usuario cliente;
@@ -54,6 +56,20 @@ class AgendamentoReagendamentoServiceTest {
 
 	@BeforeEach
 	void configurar() {
+		agoraFixo = LocalDateTime.of(2026, 11, 25, 14, 0);
+		clockFixo = Clock.fixed(
+				agoraFixo.atZone(TimeConfig.ZONA_PADRAO).toInstant(),
+				TimeConfig.ZONA_PADRAO
+		);
+
+		service = new AgendamentoReagendamentoService(
+				agendamentoRepository,
+				usuarioRepository,
+				disponibilidadeService,
+				agendamentoService,
+				clockFixo
+		);
+
 		cliente = new Usuario(
 				CLIENTE_ID,
 				null,
@@ -121,14 +137,12 @@ class AgendamentoReagendamentoServiceTest {
 		);
 	}
 
-	private void prepararClienteAutenticado()
-	{
+	private void prepararClienteAutenticado() {
 		when(usuarioRepository.findByEmail(EMAIL))
 				.thenReturn(Optional.of(cliente));
 	}
 
-	private void prepararReservaOriginal()
-	{
+	private void prepararReservaOriginal() {
 		when(agendamentoRepository.findByIdAndClienteId(
 				AGENDAMENTO_ID,
 				CLIENTE_ID
@@ -144,7 +158,8 @@ class AgendamentoReagendamentoServiceTest {
 				eq(AGENDAMENTO_ID),
 				eq(CLIENTE_ID),
 				anyList(),
-				eq(StatusAgendamento.CANCELADO)
+				eq(StatusAgendamento.CANCELADO),
+				eq(agoraFixo)
 		)).thenReturn(1);
 
 		when(disponibilidadeService.calcularParaUmProfissional(
@@ -187,7 +202,8 @@ class AgendamentoReagendamentoServiceTest {
 				eq(AGENDAMENTO_ID),
 				eq(CLIENTE_ID),
 				anyList(),
-				eq(StatusAgendamento.CANCELADO)
+				eq(StatusAgendamento.CANCELADO),
+				eq(agoraFixo)
 		);
 
 		verify(agendamentoService).registrar(
@@ -220,7 +236,8 @@ class AgendamentoReagendamentoServiceTest {
 						anyLong(),
 						anyLong(),
 						anyList(),
-						any()
+						any(),
+						any(LocalDateTime.class)
 				);
 
 		verifyNoInteractions(agendamentoService);
@@ -273,7 +290,8 @@ class AgendamentoReagendamentoServiceTest {
 				eq(AGENDAMENTO_ID),
 				eq(CLIENTE_ID),
 				anyList(),
-				eq(StatusAgendamento.CANCELADO)
+				eq(StatusAgendamento.CANCELADO),
+				eq(agoraFixo)
 		)).thenReturn(1);
 
 		when(disponibilidadeService.calcularParaUmProfissional(
@@ -301,7 +319,7 @@ class AgendamentoReagendamentoServiceTest {
 				ESTABELECIMENTO_ID,
 				2L,
 				3L,
-				LocalDateTime.of(2020, 1, 1, 10, 0)
+				agoraFixo.minusMinutes(1)
 		);
 
 		prepararClienteAutenticado();
@@ -341,76 +359,85 @@ class AgendamentoReagendamentoServiceTest {
 	}
 
 	@Test
-    void deveRejeitarQuandoUsuarioNaoExisteOuNaoECliente() {
-        var dto = new AgendamentoReagendamentoRequestDTO(
-                1L, 2L, 3L, LocalDateTime.now(com.agendaja.backend.config.TimeConfig.ZONA_PADRAO).plusDays(2)
-        );
+	void deveRejeitarQuandoUsuarioNaoExisteOuNaoECliente() {
+		var dtoTeste = new AgendamentoReagendamentoRequestDTO(
+				1L, 2L, 3L, agoraFixo.plusDays(2)
+		);
 
-        when(usuarioRepository.findByEmail("ausente@teste.com")).thenReturn(Optional.empty());
-        assertEquals(401, assertThrows(ResponseStatusException.class,
-                () -> service.reagendar(10L, dto, "ausente@teste.com")).getStatusCode().value());
+		when(usuarioRepository.findByEmail("ausente@teste.com")).thenReturn(Optional.empty());
+		assertEquals(401, assertThrows(ResponseStatusException.class,
+				() -> service.reagendar(10L, dtoTeste, "ausente@teste.com")).getStatusCode().value());
 
-        var gestor = new Usuario(1L, null, "Gestor", "gestor@teste.com", "hash", "GESTOR");
-        when(usuarioRepository.findByEmail("gestor@teste.com")).thenReturn(Optional.of(gestor));
-        assertEquals(403, assertThrows(ResponseStatusException.class,
-                () -> service.reagendar(10L, dto, "gestor@teste.com")).getStatusCode().value());
-    }
+		var gestor = new Usuario(1L, null, "Gestor", "gestor@teste.com", "hash", "GESTOR");
+		when(usuarioRepository.findByEmail("gestor@teste.com")).thenReturn(Optional.of(gestor));
+		assertEquals(403, assertThrows(ResponseStatusException.class,
+				() -> service.reagendar(10L, dtoTeste, "gestor@teste.com")).getStatusCode().value());
+	}
 
-    @Test
-    void deveDistinguir404E409QuandoCancelamentoAtomicoNaoAlterarLinhas() {
-        var cliente = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
-        var original = new Agendamento();
-        original.setId(10L);
-        original.setStatus(StatusAgendamento.CONFIRMADO);
+	@Test
+	void deveDistinguir404E409QuandoCancelamentoAtomicoNaoAlterarLinhas() {
+		var clienteTeste = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
+		var originalTeste = new Agendamento();
+		originalTeste.setId(10L);
+		originalTeste.setStatus(StatusAgendamento.CONFIRMADO);
 
-        var dto = new AgendamentoReagendamentoRequestDTO(
-                1L, 2L, 3L, LocalDateTime.now(com.agendaja.backend.config.TimeConfig.ZONA_PADRAO).plusDays(2)
-        );
+		var dtoTeste = new AgendamentoReagendamentoRequestDTO(
+				1L, 2L, 3L, agoraFixo.plusDays(2)
+		);
 
-        when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(cliente));
-        when(agendamentoRepository.cancelarSePermitido(eq(10L), eq(1L), anyList(), eq(StatusAgendamento.CANCELADO)))
-                .thenReturn(0);
+		when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(clienteTeste));
+		when(agendamentoRepository.cancelarSePermitido(
+				eq(10L),
+				eq(1L),
+				anyList(),
+				eq(StatusAgendamento.CANCELADO),
+				eq(agoraFixo)
+		)).thenReturn(0);
 
-        // Segunda consulta retorna vazio -> 404
-        when(agendamentoRepository.findByIdAndClienteId(10L, 1L))
-                .thenReturn(Optional.of(original))
-                .thenReturn(Optional.empty());
-        assertEquals(404, assertThrows(ResponseStatusException.class,
-                () -> service.reagendar(10L, dto, "maria@teste.com")).getStatusCode().value());
+		// Segunda consulta retorna vazio -> 404
+		when(agendamentoRepository.findByIdAndClienteId(10L, 1L))
+				.thenReturn(Optional.of(originalTeste))
+				.thenReturn(Optional.empty());
+		assertEquals(404, assertThrows(ResponseStatusException.class,
+				() -> service.reagendar(10L, dtoTeste, "maria@teste.com")).getStatusCode().value());
 
-        // Segunda consulta encontra reserva (alterada concorrentemente) -> 409
-        when(agendamentoRepository.findByIdAndClienteId(10L, 1L))
-                .thenReturn(Optional.of(original))
-                .thenReturn(Optional.of(original));
-        assertEquals(409, assertThrows(ResponseStatusException.class,
-                () -> service.reagendar(10L, dto, "maria@teste.com")).getStatusCode().value());
-    }
+		// Segunda consulta encontra reserva (alterada concorrentemente) -> 409
+		when(agendamentoRepository.findByIdAndClienteId(10L, 1L))
+				.thenReturn(Optional.of(originalTeste))
+				.thenReturn(Optional.of(originalTeste));
+		assertEquals(409, assertThrows(ResponseStatusException.class,
+				() -> service.reagendar(10L, dtoTeste, "maria@teste.com")).getStatusCode().value());
+	}
 
-    @Test
-    void deveLancarIllegalStateExceptionQuandoNovaReservaNaoForEncontradaAposCadastro() {
-        var cliente = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
-        var original = new Agendamento();
-        original.setId(10L);
-        original.setStatus(StatusAgendamento.AGUARDANDO_CONFIRMACAO);
+	@Test
+	void deveLancarIllegalStateExceptionQuandoNovaReservaNaoForEncontradaAposCadastro() {
+		var clienteTeste = new Usuario(1L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
+		var originalTeste = new Agendamento();
+		originalTeste.setId(10L);
+		originalTeste.setStatus(StatusAgendamento.AGUARDANDO_CONFIRMACAO);
 
-        var futuro = LocalDateTime.now(com.agendaja.backend.config.TimeConfig.ZONA_PADRAO)
-                .plusDays(2).withHour(14).withMinute(0).withSecond(0).withNano(0);
-        var dto = new AgendamentoReagendamentoRequestDTO(1L, 2L, 3L, futuro);
+		var futuro = agoraFixo.plusDays(2).withHour(14).withMinute(0).withSecond(0).withNano(0);
+		var dtoTeste = new AgendamentoReagendamentoRequestDTO(1L, 2L, 3L, futuro);
 
-        var respostaCriada = mock(com.agendaja.backend.dto.AgendamentoResponseDTO.class);
-        when(respostaCriada.id()).thenReturn(200L);
+		var respostaCriada = mock(AgendamentoResponseDTO.class);
+		when(respostaCriada.id()).thenReturn(200L);
 
-        when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(cliente));
-        when(agendamentoRepository.findByIdAndClienteId(10L, 1L)).thenReturn(Optional.of(original));
-        when(agendamentoRepository.cancelarSePermitido(eq(10L), eq(1L), anyList(), eq(StatusAgendamento.CANCELADO)))
-                .thenReturn(1);
-        when(disponibilidadeService.calcularParaUmProfissional(1L, 3L, 2L, futuro.toLocalDate()))
-                .thenReturn(List.of(futuro.toLocalTime()));
-        when(agendamentoService.registrar(eq(1L), any(AgendamentoRequestDTO.class), eq("maria@teste.com")))
-                .thenReturn(respostaCriada);
-        when(agendamentoRepository.findByIdAndClienteId(200L, 1L)).thenReturn(Optional.empty());
+		when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(clienteTeste));
+		when(agendamentoRepository.findByIdAndClienteId(10L, 1L)).thenReturn(Optional.of(originalTeste));
+		when(agendamentoRepository.cancelarSePermitido(
+				eq(10L),
+				eq(1L),
+				anyList(),
+				eq(StatusAgendamento.CANCELADO),
+				eq(agoraFixo)
+		)).thenReturn(1);
+		when(disponibilidadeService.calcularParaUmProfissional(1L, 3L, 2L, futuro.toLocalDate()))
+				.thenReturn(List.of(futuro.toLocalTime()));
+		when(agendamentoService.registrar(eq(1L), any(AgendamentoRequestDTO.class), eq("maria@teste.com")))
+				.thenReturn(respostaCriada);
+		when(agendamentoRepository.findByIdAndClienteId(200L, 1L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalStateException.class,
-                () -> service.reagendar(10L, dto, "maria@teste.com"));
-    }
+		assertThrows(IllegalStateException.class,
+				() -> service.reagendar(10L, dtoTeste, "maria@teste.com"));
+	}
 }

@@ -8,8 +8,11 @@ import com.agendaja.backend.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import com.agendaja.backend.config.TimeConfig;
+import org.junit.jupiter.api.BeforeEach;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -32,8 +35,24 @@ class ClienteServiceTest {
 	@Mock
 	private AgendamentoRepository agendamentoRepository;
 
-	@InjectMocks
+	private Clock clockFixo;
+	private LocalDateTime agoraFixo;
 	private ClienteService clienteService;
+
+	@BeforeEach
+	void setup() {
+		agoraFixo = LocalDateTime.of(2026, 11, 25, 14, 0);
+		clockFixo = Clock.fixed(
+				agoraFixo.atZone(TimeConfig.ZONA_PADRAO).toInstant(),
+				TimeConfig.ZONA_PADRAO
+		);
+		clienteService = new ClienteService(
+				usuarioRepository,
+				passwordEncoder,
+				agendamentoRepository,
+				clockFixo
+		);
+	}
 
 	private ClienteCadastroDTO criarDto()
 	{
@@ -207,6 +226,7 @@ class ClienteServiceTest {
         assertFalse(cliente.isAtivo());
         verify(agendamentoRepository).cancelarAgendamentosFuturosDoCliente(
                 1L,
+                agoraFixo,
                 List.of(
                         com.agendaja.backend.model.StatusAgendamento.AGUARDANDO_CONFIRMACAO,
                         com.agendaja.backend.model.StatusAgendamento.CONFIRMADO
