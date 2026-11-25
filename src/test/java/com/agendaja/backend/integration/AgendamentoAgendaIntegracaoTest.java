@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -31,6 +32,7 @@ class AgendamentoAgendaIntegracaoTest {
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private ServicoRepository servicoRepository;
     @Autowired private ProfissionalRepository profissionalRepository;
+    @Autowired private Clock clock;
 
     private Long estabelecimentoId;
     private Long profissional1Id;
@@ -134,7 +136,7 @@ class AgendamentoAgendaIntegracaoTest {
     void deveRetornarApenasAgendamentosAtualizadosParaSincronizacaoIncremental() throws InterruptedException {
         // O campo atualizadoEm usa LocalDateTime.now() do banco na vida real, então o polling dinâmico continua funcionando no teste
         Thread.sleep(100);
-        LocalDateTime momentoDoPolling = LocalDateTime.now();
+        LocalDateTime momentoDoPolling = LocalDateTime.now(clock);
         Thread.sleep(100);
 
         // O gestor cancela o agendamento de amanhã. Isso acionará o @PreUpdate e mudará o 'atualizadoEm'
