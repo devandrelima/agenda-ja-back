@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -24,15 +25,16 @@ public class LembreteAgendamentoJob {
     private final AgendamentoRepository agendamentoRepository;
     private final NotificadorService notificadorService;
     private final WahaService wahaService;
+    private final Clock clock;
 
-    // A expressão Cron "0 0 8 * * *" significa: Às 08h 00m 00s, todos os dias
-    @Scheduled(cron = "0 0 8 * * *")
+    // A expressão Cron "0 0 8 * * *" significa: Às 08h 00m 00s, todos os dias no fuso de São Paulo/Fortaleza
+    @Scheduled(cron = "0 0 8 * * *", zone = "America/Sao_Paulo")
     @Transactional
     public void processarLembretesDeAmanha()
     {
         log.info("Iniciando rotina automática de envio de lembretes...");
 
-        LocalDate amanha = LocalDate.now().plusDays(1);
+        LocalDate amanha = LocalDate.now(clock).plusDays(1);
         LocalDateTime inicioAmanha = amanha.atStartOfDay();
         LocalDateTime fimAmanha = amanha.atTime(LocalTime.MAX);
 
@@ -53,13 +55,13 @@ public class LembreteAgendamentoJob {
             try {
                 notificadorService.enviarLembreteAgendamento(agendamento);
                 wahaService.enviarLembrete(agendamento);
-                
-                // Marca como enviado. Como o método é @Transactional, 
+
+                // Marca como enviado. Como o método é @Transactional,
                 // o JPA fará o flush automático ao fim da execução.
                 agendamento.setLembreteEnviado(true);
                 enviados++;
             } catch (Exception e) {
-                // Captura a exceção dentro do loop 
+                // Captura a exceção dentro do loop
                 // Assim, se o disparo para o Cliente A falhar, o Cliente B recebe na mesma.
                 log.error("Erro inesperado ao processar lembrete para a reserva {}: {}", agendamento.getId(), e.getMessage());
             }

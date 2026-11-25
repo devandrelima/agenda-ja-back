@@ -14,6 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -32,6 +33,7 @@ class LembreteIntegracaoTest {
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private ServicoRepository servicoRepository;
     @Autowired private ProfissionalRepository profissionalRepository;
+    @Autowired private Clock clock;
 
     // Substitui o adaptador real por um mock para não enviar e-mails de verdade durante o teste
     @MockitoBean private NotificadorService notificadorService;
@@ -59,7 +61,7 @@ class LembreteIntegracaoTest {
         prof.setEstabelecimento(estabelecimento);
         prof = profissionalRepository.saveAndFlush(prof);
 
-        LocalDate hoje = LocalDate.now();
+        LocalDate hoje = LocalDate.now(clock);
         LocalDate amanha = hoje.plusDays(1);
         LocalDate depoisDeAmanha = hoje.plusDays(2);
 
@@ -82,7 +84,8 @@ class LembreteIntegracaoTest {
         criarAgendamento(cliente, prof, servico, depoisDeAmanha.atTime(14, 0), StatusAgendamento.CONFIRMADO, false);
     }
 
-    private Agendamento criarAgendamento(Usuario cliente, Profissional prof, Servico servico, LocalDateTime inicio, StatusAgendamento status, boolean lembreteEnviado) {
+    private Agendamento criarAgendamento(Usuario cliente, Profissional prof, Servico servico, LocalDateTime inicio, StatusAgendamento status, boolean lembreteEnviado)
+    {
         var a = new Agendamento();
         a.setCliente(cliente);
         a.setProfissional(prof);
