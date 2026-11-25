@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-agendaja}
       POSTGRES_USER: ${DB_USERNAME:-agendaja}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-agendaja}
+      TZ: America/Sao_Paulo
+      PGTZ: America/Sao_Paulo
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
