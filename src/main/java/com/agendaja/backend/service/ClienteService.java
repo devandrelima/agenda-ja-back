@@ -8,14 +8,14 @@ import com.agendaja.backend.model.Usuario;
 import com.agendaja.backend.repository.AgendamentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-
 import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +23,7 @@ public class ClienteService {
 	private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final AgendamentoRepository agendamentoRepository;
+    private final Clock clock;
 
 	@Transactional
 	public ClienteResponseDTO cadastrar(ClienteCadastroDTO dto)
@@ -96,8 +97,9 @@ public class ClienteService {
         // Cancelamento em massa das reservas futuras (liberta a agenda dos profissionais)
         agendamentoRepository.cancelarAgendamentosFuturosDoCliente(
                 cliente.getId(),
+                LocalDateTime.now(clock),
                 List.of(
-                        com.agendaja.backend.model.StatusAgendamento.AGUARDANDO_CONFIRMACAO, 
+                        com.agendaja.backend.model.StatusAgendamento.AGUARDANDO_CONFIRMACAO,
                         com.agendaja.backend.model.StatusAgendamento.CONFIRMADO
                 ),
                 com.agendaja.backend.model.StatusAgendamento.CANCELADO

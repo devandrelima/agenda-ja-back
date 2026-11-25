@@ -113,11 +113,12 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
         UPDATE Agendamento a
         SET a.status = :cancelado
         WHERE a.cliente.id = :clienteId
-          AND a.dataHoraInicio > CURRENT_TIMESTAMP
+          AND a.dataHoraInicio > :agora
           AND a.status IN :statusPermitidos
     """)
     int cancelarAgendamentosFuturosDoCliente(
             @Param("clienteId") Long clienteId,
+            @Param("agora") LocalDateTime agora,
             @Param("statusPermitidos") List<StatusAgendamento> statusPermitidos,
             @Param("cancelado") StatusAgendamento cancelado
     );
