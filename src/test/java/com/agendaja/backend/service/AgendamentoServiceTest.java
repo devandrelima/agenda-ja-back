@@ -18,11 +18,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.agendaja.backend.config.TimeConfig;
+import java.time.Clock;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class AgendamentoServiceTest {
@@ -48,15 +51,26 @@ class AgendamentoServiceTest {
     private Usuario clienteDono;
     private Usuario gestor;
 
+    private Clock clockFixo;
+    private LocalDateTime agoraFixo;
+
     @BeforeEach
     void setup() {
+        agoraFixo = LocalDateTime.of(2026, 11, 25, 14, 0);
+        clockFixo = Clock.fixed(
+                agoraFixo.atZone(TimeConfig.ZONA_PADRAO).toInstant(),
+                TimeConfig.ZONA_PADRAO
+        );
+
         agendamentoService = new AgendamentoService(
                 agendamentoRepository,
                 usuarioRepository,
                 profissionalRepository,
                 servicoRepository,
-                eventPublisher
+                eventPublisher,
+                clockFixo
         );
+
         estabelecimento = new Estabelecimento();
         estabelecimento.setId(1L);
         estabelecimento.setNome("Salão Teste");
@@ -258,5 +272,20 @@ class AgendamentoServiceTest {
         when(usuarioRepository.findByEmail("joao@teste.com")).thenReturn(Optional.of(outroCliente));
         assertEquals(403, assertThrows(ResponseStatusException.class,
                 () -> agendamentoService.consultarDetalhes(1L, 10L, "joao@teste.com")).getStatusCode().value());
+    }
+
+    @Test
+    void registrar_deveRejeitarHorarioNoPassadoOuIgualAoAtualCom400() {
+        var dtoPassado = new AgendamentoRequestDTO(3L, 2L, agoraFixo.minusMinutes(1), null);
+        var dtoAgora = new AgendamentoRequestDTO(3L, 2L, agoraFixo, null);
+
+        var erroPassado = assertThrows(ResponseStatusException.class,
+                () -> agendamentoService.registrar(1L, dtoPassado, "maria@teste.com"));
+        var erroAgora = assertThrows(ResponseStatusException.class,
+                () -> agendamentoService.registrar(1L, dtoAgora, "maria@teste.com"));
+
+        assertEquals(400, erroPassado.getStatusCode().value());
+        assertEquals(400, erroAgora.getStatusCode().value());
+        verifyNoInteractions(usuarioRepository, profissionalRepository, servicoRepository, agendamentoRepository, eventPublisher);
     }
 }

@@ -27,6 +27,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.time.Clock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -51,6 +52,9 @@ class AgendamentoConcorrenciaIntegracaoTest {
 
     @Autowired
     private AgendamentoRepository agendamentoRepository;
+
+    @Autowired
+    private Clock clock;
 
     private Long estabelecimentoId;
     private Long servicoId;
@@ -103,7 +107,12 @@ class AgendamentoConcorrenciaIntegracaoTest {
         AtomicInteger sucessos = new AtomicInteger(0);
         AtomicInteger falhasDeConcorrencia = new AtomicInteger(0);
 
-        LocalDateTime horarioDesejado = LocalDateTime.of(2026, 12, 24, 14, 0);
+        LocalDateTime horarioDesejado = LocalDateTime.now(clock)
+                .plusDays(10)
+                .withHour(14)
+                .withMinute(0)
+                .withSecond(0)
+                .withNano(0);
         AgendamentoRequestDTO requestDTO = new AgendamentoRequestDTO(servicoId, profissionalId, horarioDesejado, "Reserva de Natal");
 
         // 10 threads para atacarem o serviço ao mesmo tempo
