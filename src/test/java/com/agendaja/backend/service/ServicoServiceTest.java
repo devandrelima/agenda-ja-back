@@ -1,4 +1,3 @@
-
 package com.agendaja.backend.service;
 
 import com.agendaja.backend.dto.ServicoRequestDTO;
@@ -7,16 +6,13 @@ import com.agendaja.backend.model.Servico;
 import com.agendaja.backend.repository.EstabelecimentoRepository;
 import com.agendaja.backend.repository.ServicoRepository;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +23,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ServicoServiceTest {
-
 	private static final Long ESTABELECIMENTO_ID = 1L;
 	private static final String EMAIL = "gestor@email.com";
 
@@ -43,7 +38,8 @@ class ServicoServiceTest {
 	@InjectMocks
 	private ServicoService servicoService;
 
-	private ServicoRequestDTO dadosValidos() {
+	private ServicoRequestDTO dadosValidos()
+	{
 		return new ServicoRequestDTO(
 				"Corte de cabelo",
 				30,
@@ -51,8 +47,8 @@ class ServicoServiceTest {
 		);
 	}
 
-
-	private Servico servicoExistente() {
+	private Servico servicoExistente()
+	{
 		var estabelecimento = new Estabelecimento();
 		estabelecimento.setId(ESTABELECIMENTO_ID);
 
@@ -119,7 +115,6 @@ class ServicoServiceTest {
 
 	@Test
 	void deveConsultarServicoDoEstabelecimento() {
-
 		var servico = servicoExistente();
 
 		when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(
@@ -221,4 +216,23 @@ class ServicoServiceTest {
 		verify(servicoRepository, never()).delete(any());
 	}
 
+	@Test
+	void deveRetornar404QuandoEstabelecimentoOuServicoNaoExistirem() {
+		var dto = mock(com.agendaja.backend.dto.ServicoRequestDTO.class);
+
+		when(estabelecimentoRepository.findById(99L)).thenReturn(Optional.empty());
+		var erroEstabelecimento = assertThrows(
+				ResponseStatusException.class,
+				() -> servicoService.criar(99L, dto, "gestor@teste.com")
+		);
+		assertEquals(404, erroEstabelecimento.getStatusCode().value());
+
+		when(servicoRepository.findByIdAndEstabelecimentoIdAndAtivoTrue(999L, 1L))
+				.thenReturn(Optional.empty());
+		var erroServico = assertThrows(
+				ResponseStatusException.class,
+				() -> servicoService.consultar(1L, 999L, "gestor@teste.com")
+		);
+		assertEquals(404, erroServico.getStatusCode().value());
+	}
 }

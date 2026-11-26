@@ -7,23 +7,21 @@ import com.agendaja.backend.model.Usuario;
 import com.agendaja.backend.repository.AvaliacaoRepository;
 import com.agendaja.backend.repository.EstabelecimentoRepository;
 import com.agendaja.backend.repository.UsuarioRepository;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AvaliacaoServiceTest {
-
 	private static final Long ESTABELECIMENTO_ID = 1L;
 	private static final Long CLIENTE_ID = 10L;
 	private static final String EMAIL = "cliente@email.com";
@@ -226,5 +224,37 @@ class AvaliacaoServiceTest {
 		assertEquals(404, excecao.getStatusCode().value());
 		verify(avaliacaoRepository, never())
 				.delete(any(Avaliacao.class));
+	}
+
+	@Test
+	void deveCobrirCenariosDeNaoEncontradoEUsuarioAusente() {
+		var dto = mock(com.agendaja.backend.dto.AvaliacaoRequestDTO.class);
+
+		// 1. Usuário autenticado não encontrado (401)
+		when(usuarioRepository.findByEmail("ausente@teste.com")).thenReturn(Optional.empty());
+		var erroUsuario = assertThrows(
+				ResponseStatusException.class,
+				() -> avaliacaoService.publicar(1L, dto, "ausente@teste.com")
+		);
+		assertEquals(401, erroUsuario.getStatusCode().value());
+
+		// 2. Estabelecimento não encontrado ao publicar (404)
+		var cliente = new Usuario(10L, null, "Maria", "maria@teste.com", "hash", "CLIENTE");
+		when(usuarioRepository.findByEmail("maria@teste.com")).thenReturn(Optional.of(cliente));
+		when(estabelecimentoRepository.findById(99L)).thenReturn(Optional.empty());
+		var erroEstabelecimento = assertThrows(
+				ResponseStatusException.class,
+				() -> avaliacaoService.publicar(99L, dto, "maria@teste.com")
+		);
+		assertEquals(404, erroEstabelecimento.getStatusCode().value());
+
+		// 3. Avaliação não encontrada ao editar/excluir (404)
+		when(avaliacaoRepository.findByClienteIdAndEstabelecimentoId(10L, 1L))
+				.thenReturn(Optional.empty());
+		var erroAvaliacao = assertThrows(
+				ResponseStatusException.class,
+				() -> avaliacaoService.excluir(1L, "maria@teste.com")
+		);
+		assertEquals(404, erroAvaliacao.getStatusCode().value());
 	}
 }
