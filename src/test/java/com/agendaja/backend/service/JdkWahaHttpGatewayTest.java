@@ -2,7 +2,7 @@ package com.agendaja.backend.service;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-
+import org.mockito.ArgumentMatchers;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -27,11 +27,11 @@ class JdkWahaHttpGatewayTest {
     @Test
     void deveEnviarGetSemCorpoComChaveDaApi() throws Exception {
         HttpClient cliente = mock(HttpClient.class);
-        @SuppressWarnings("unchecked")
-        HttpResponse<byte[]> resposta = mock(HttpResponse.class);
+        HttpResponse<byte[]> resposta = mock();
         when(resposta.statusCode()).thenReturn(200);
         when(resposta.body()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
-        when(cliente.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(resposta);
+        when(cliente.send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<byte[]>>any()))
+                .thenReturn(resposta);
         var gateway = new JdkWahaHttpGateway(cliente);
 
         gateway.executar("GET", URI.create("http://waha.test/api/sessions/agendaja"), "chave-secreta", null, Duration.ofSeconds(2));
@@ -46,11 +46,11 @@ class JdkWahaHttpGatewayTest {
     @Test
     void deveEnviarPostJsonComHttp1() throws Exception {
         HttpClient cliente = mock(HttpClient.class);
-        @SuppressWarnings("unchecked")
-        HttpResponse<byte[]> resposta = mock(HttpResponse.class);
+        HttpResponse<byte[]> resposta = mock();
         when(resposta.statusCode()).thenReturn(201);
         when(resposta.body()).thenReturn("{}".getBytes(StandardCharsets.UTF_8));
-        when(cliente.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(resposta);
+        when(cliente.send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<byte[]>>any()))
+                .thenReturn(resposta);
         var gateway = new JdkWahaHttpGateway(cliente);
 
         gateway.executar("POST", URI.create("http://waha.test/api/sendText"), "chave-secreta", "{\"text\":\"oi\"}", Duration.ofSeconds(2));
@@ -63,9 +63,10 @@ class JdkWahaHttpGatewayTest {
         assertThat(requisicao.bodyPublisher()).isPresent();
     }
 
-    private HttpRequest capturarRequisicao(HttpClient cliente) throws Exception {
+    private HttpRequest capturarRequisicao(HttpClient cliente) throws Exception
+    {
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
-        verify(cliente).send(captor.capture(), any(HttpResponse.BodyHandler.class));
+        verify(cliente).send(captor.capture(), ArgumentMatchers.<HttpResponse.BodyHandler<byte[]>>any());
         return captor.getValue();
     }
 }

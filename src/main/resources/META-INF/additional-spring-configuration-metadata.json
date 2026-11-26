@@ -1,0 +1,52 @@
+{
+  "properties": [
+    {
+      "name": "app.mail.from",
+      "type": "java.lang.String",
+      "description": "Endereço remetente padrão para e-mails enviados pela aplicação.",
+      "defaultValue": "no-reply@agendaja.local"
+    },
+    {
+      "name": "app.frontend.password-reset-url",
+      "type": "java.lang.String",
+      "description": "URL base do frontend para a página de redefinição de senha.",
+      "defaultValue": "http://localhost:5173/redefinir-senha"
+    },
+    {
+      "name": "app.waha.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Habilita o envio de notificações via WhatsApp (WAHA).",
+      "defaultValue": false
+    },
+    {
+      "name": "app.waha.base-url",
+      "type": "java.lang.String",
+      "description": "URL base da instância do servidor WAHA.",
+      "defaultValue": "http://agenda-ja-waha:3000"
+    },
+    {
+      "name": "app.waha.api-key",
+      "type": "java.lang.String",
+      "description": "Chave de API enviada no cabeçalho X-Api-Key para o WAHA.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.waha.session",
+      "type": "java.lang.String",
+      "description": "Nome da sessão configurada no WAHA.",
+      "defaultValue": "agendaja"
+    },
+    {
+      "name": "app.waha.connect-timeout-ms",
+      "type": "java.lang.Long",
+      "description": "Tempo limite de conexão HTTP com o WAHA em milissegundos.",
+      "defaultValue": 5000
+    },
+    {
+      "name": "app.waha.read-timeout-ms",
+      "type": "java.lang.Long",
+      "description": "Tempo limite de leitura das respostas do WAHA em milissegundos.",
+      "defaultValue": 10000
+    }
+  ]
+}
