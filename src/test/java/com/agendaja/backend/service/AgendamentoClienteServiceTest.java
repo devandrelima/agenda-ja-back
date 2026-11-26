@@ -364,4 +364,17 @@ class AgendamentoClienteServiceTest {
 
 		assertEquals(409, erro.getStatusCode().value());
 	}
+
+	@Test
+	void deveRetornar401QuandoUsuarioAutenticadoNaoForEncontrado() {
+		when(usuarioRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+		var erro = assertThrows(
+				ResponseStatusException.class,
+				() -> service.listar(email)
+		);
+
+		assertEquals(401, erro.getStatusCode().value());
+		verifyNoInteractions(agendamentoRepository);
+	}
 }
