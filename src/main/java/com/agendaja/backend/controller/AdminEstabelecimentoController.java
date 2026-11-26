@@ -1,30 +1,24 @@
-
 package com.agendaja.backend.controller;
 
 import com.agendaja.backend.repository.EstabelecimentoRepository;
 import com.agendaja.backend.security.EstabelecimentoAuthorizationService;
 import com.agendaja.backend.service.ConfiguracaoEstabelecimentoService;
 import com.agendaja.backend.dto.HorarioFuncionamentoDTO;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
 import java.util.UUID;
 import java.util.List;
 
-
 @RestController
-@RequestMapping("/api/admin/estabelecimentos")
+@RequestMapping("/api/admin/estabelecimentos/{id}")
 @RequiredArgsConstructor
 public class AdminEstabelecimentoController {
-
 	private final EstabelecimentoRepository estabelecimentoRepository;
 
 	private final EstabelecimentoAuthorizationService authorizationService;
@@ -49,11 +43,9 @@ public class AdminEstabelecimentoController {
 			@ApiResponse(responseCode = "403", description = "Acesso negado"),
 			@ApiResponse(responseCode = "404", description = "Estabelecimento não encontrado")
 	})
-	@GetMapping("/{id}")
-	public EstabelecimentoResumoDTO consultar(
-			@PathVariable Long id,
-			Authentication authentication
-	) {
+	@GetMapping()
+	public EstabelecimentoResumoDTO consultar(@PathVariable Long id, Authentication authentication)
+	{
 		authorizationService.validarAcesso(
 				authentication.getName(),
 				id
@@ -79,27 +71,27 @@ public class AdminEstabelecimentoController {
 		);
 	}
 
-	@PutMapping("/{id}/dados")
-	public void atualizarDados(@PathVariable Long id, Authentication authentication,
-			@RequestBody DadosRequest dados) {
+	@PutMapping("/dados")
+	public void atualizarDados(@PathVariable Long id, Authentication authentication, @RequestBody DadosRequest dados)
+	{
 		configuracaoService.salvarDados(id, authentication.getName(), dados.nome(), dados.categoria(), dados.localizacao());
 	}
 
-	@PutMapping("/{id}/capa")
-	public void atualizarCapa(@PathVariable Long id, Authentication authentication,
-			@RequestBody CapaRequest dados) {
+	@PutMapping("/capa")
+	public void atualizarCapa(@PathVariable Long id, Authentication authentication, @RequestBody CapaRequest dados)
+	{
 		configuracaoService.salvarCapa(id, authentication.getName(), dados.imagemUrl());
 	}
 
-	@PutMapping("/{id}/logo")
-	public void atualizarLogo(@PathVariable Long id, Authentication authentication,
-			@RequestBody LogoRequest dados) {
+	@PutMapping("/logo")
+	public void atualizarLogo(@PathVariable Long id, Authentication authentication, @RequestBody LogoRequest dados)
+	{
 		configuracaoService.salvarLogo(id, authentication.getName(), dados.imagemUrl());
 	}
 
-	@PutMapping("/{id}/horarios")
-	public void atualizarHorarios(@PathVariable Long id, Authentication authentication,
-			@RequestBody List<HorarioFuncionamentoDTO> horarios) {
+	@PutMapping("/horarios")
+	public void atualizarHorarios(@PathVariable Long id, Authentication authentication, @RequestBody List<HorarioFuncionamentoDTO> horarios)
+	{
 		configuracaoService.salvarHorarios(id, authentication.getName(), horarios);
 	}
 
